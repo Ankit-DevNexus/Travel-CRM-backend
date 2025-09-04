@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
-const hotelSchema = new mongoose.Schema(
-    {}, {strict: false}
+const hotelBookingSchema = new mongoose.Schema({}, 
+    {strict: false}
 );
 
-const hotelModel = mongoose.model("hotel", hotelSchema);
-export default hotelModel;
+const hotelBookingModel = mongoose.model("hotelCollection", hotelBookingSchema);
+export default hotelBookingModel;

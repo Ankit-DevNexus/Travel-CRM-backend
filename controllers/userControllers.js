@@ -2,7 +2,6 @@
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import mongoose from "mongoose";
-import { ALL_PERMISSIONS } from "../utils/permissions.js";
 
 // Generate JWT
 const generateToken = (user) => {
@@ -51,11 +50,9 @@ export const signup = async (req, res) => {
     }
 
     // Permissions handling
-    let finalPermissions = [];
-    if (role === "admin") {
-      finalPermissions = ALL_PERMISSIONS; // Admin gets everything
-    } else {
-      finalPermissions = permissions || []; // User gets limited
+    let finalPermissions = {};
+    if (role !== "admin") {
+      finalPermissions = permissions || {}; // user-level permissions sent from frontend
     }
 
     // Create user
@@ -234,3 +231,4 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Error deleting user", error: error.message });
   }
 };
+

@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: { type: String, enum: ['admin', 'user'], default: 'admin' },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // link User to Admin
-  permissions: [String],
+  permissions: {
+    type: Map,
+    of: Boolean,
+    default: {}
+  },
   facebookPages: [ // store connected FB pages for Admin
     {
       pageId: String,
