@@ -1,3 +1,4 @@
+
 // middleware/authMiddleware.js
 import dotenv from "dotenv";
 dotenv.config();

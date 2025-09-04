@@ -13,11 +13,11 @@ const uri = process.env.MONGO_URL;
 const app = express();
 const MONGO_DB_URI = process.env.MONGO_DB_URI;
 
-
 getDashboardDB(MONGO_DB_URI);
 
 app.use(cors());
 app.use(bodyParser.json());
+
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
