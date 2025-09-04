@@ -9,9 +9,10 @@ export const createHotelBooking = async (req, res) => {
         }
 
         const hotel = new hotelBookingModel({
-            adminId: req.user._id,       // logged-in Admin ID
-            user_email: req.user.email,  // logged-in Admin email
-            createdBy: req.user.name,    // logged-in Admin name
+            adminId: req.user.role === "admin" ? req.user._id : req.user.adminId,
+            createdBy: req.user.name,
+            createdByEmail: req.user.email,
+            createdByRole: req.user.role,
             ...req.body
         });
         const savedhotel = await hotel.save();
@@ -42,22 +43,20 @@ export const getAllHotelBooking = async (req, res) => {
         // comes from frontend (e.g., ?currentPage=2&limit=10
         // If frontend doesn’t send it, default currentPage = 1 and limit = 7.
         // limit → how many documents per page.
-        
+
         const currentPage = parseInt(req.query.currentPage) || 1;
         const limit = parseInt(req.query.limit) || 7;
         const skip = (currentPage - 1) * limit;
 
-        let query = {};
+         let query = {};
 
         if (req.user.role === "admin") {
-            // Admin sees only his own leads
-            query.adminId = new mongoose.Types.ObjectId(req.user._id);
+            query.adminId = req.user._id;
         } else if (req.user.role === "user") {
-            // User sees all leads created by their Admin
-            query.adminId = new mongoose.Types.ObjectId(req.user.adminId);
-
-            // later when assignedTo is ObjectId
-            // query.assignedTo = req.user._id;
+            query.$or = [
+                { adminId: req.user.adminId, createdByEmail: req.user.email }, // user’s own leads
+                { adminId: req.user.adminId, createdByRole: "admin" }          // admin’s leads
+            ];
         }
 
         const [hotels, totalLeads] = await Promise.all([
@@ -115,3 +114,48 @@ export const getBookedHotelById = async (req, res) => {
         });
     }
 };
+
+
+export const updateFlightBooking = async (req, res) => {
+    try {
+        const { leadIds } = req.body;       // Array of Lead IDs
+        const updateData = req.body.updateData; // Fields to update
+
+        if (!Array.isArray(leadIds) || leadIds.length === 0) {
+            return res.status(400).json({ message: "leadIds must be a non-empty array" });
+        }
+
+        let query = {};
+        if (req.user.role === "admin") {
+            query.adminId = new mongoose.Types.ObjectId(req.user._id);
+        } else {
+            query.adminId = new mongoose.Types.ObjectId(req.user.adminId);
+            query.assignedTo = String(req.user._id);
+        }
+
+        query._id = { $in: leadIds.map(id => new mongoose.Types.ObjectId(id)) };
+
+        // Perform update
+        const result = await LeadsModel.updateMany(
+            query,
+            { $set: updateData },
+            { new: true }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ message: "No matching leads found or permission denied" });
+        }
+
+        return res.status(200).json({
+            message: "Leads updated successfully",
+            matched: result.matchedCount,
+            modified: result.modifiedCount
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error updating leads",
+            error: error.message
+        });
+    }
+}

@@ -11,11 +11,13 @@ export const createFlightBooking = async (req, res) => {
 
         // create instance with all fields from req.body
         const flight = new flightBookingModel({
-            adminId: req.user._id,       // logged-in Admin ID
-            user_email: req.user.email,  // logged-in Admin email
-            createdBy: req.user.name,    // logged-in Admin name
+            adminId: req.user.role === "admin" ? req.user._id : req.user.adminId,
+            createdBy: req.user.name,
+            createdByEmail: req.user.email,
+            createdByRole: req.user.role,
             ...req.body
         });
+
 
         // save to DB
         const savedFlight = await flight.save();
@@ -54,14 +56,12 @@ export const getAllFlightBooking = async (req, res) => {
         let query = {};
 
         if (req.user.role === "admin") {
-            // Admin sees only his own leads
-            query.adminId = new mongoose.Types.ObjectId(req.user._id);
+            query.adminId = req.user._id;
         } else if (req.user.role === "user") {
-            // User sees all leads created by their Admin
-            query.adminId = new mongoose.Types.ObjectId(req.user.adminId);
-
-            // later when assignedTo is ObjectId
-            // query.assignedTo = req.user._id;
+            query.$or = [
+                { adminId: req.user.adminId, createdByEmail: req.user.email }, // user’s own leads
+                { adminId: req.user.adminId, createdByRole: "admin" }          // admin’s leads
+            ];
         }
 
         // fetch data
@@ -93,7 +93,7 @@ export const getAllFlightBooking = async (req, res) => {
 export const getBookedFlightById = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // validate objectId
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
