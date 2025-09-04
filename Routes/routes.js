@@ -21,13 +21,10 @@ router.post('/create-flight-booking', Authenticate, createFlightBooking);
 router.get('/all-booked-flight', Authenticate, getAllFlightBooking);
 router.get("/all-booked-flight/:id", Authenticate, getBookedFlightById);
 
-
 //hotel Booking
 router.post("/create-hotel-booking", Authenticate, createHotelBooking);
 router.get("/all-booked-hotel", Authenticate, getAllHotelBooking);
 router.get("/all-booked-hotel/:id", Authenticate, getBookedHotelById);
-
-
 
 export default router;
 
