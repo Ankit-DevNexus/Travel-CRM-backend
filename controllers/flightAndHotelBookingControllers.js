@@ -1,43 +1,22 @@
-import flightBookingModel from "../models/flightBookingModel.js";
 import mongoose from "mongoose";
+import flightAndHotelBookingModel from "../models/flightAndHotelBookingModel.js";
 
 
-export const createFlightBooking = async (req, res) => {
+export const createFlightAndHotelBooking = async (req, res) => {
     try {
-        // validate that body is not empty
-        if (!req.body || Object.keys(req.body).length === 0) {
-            return res.status(400).json({ error: "Request body cannot be empty" });
-        }
+    const user = req.user; // logged-in user from authMiddleware
 
-        // create instance with all fields from req.body
-        const flight = new flightBookingModel({
-            adminId: req.user.role === "admin" ? req.user._id : req.user.adminId,
-            createdBy: req.user.name,
-            createdByEmail: req.user.email,
-            createdByRole: req.user.role,
-            ...req.body
-        });
+    const booking = await flightAndHotelBookingModel.create({
+      ...req.body,  // flight/hotel details (flexible because strict:false)
+      organisationId: user.organisationId,
+      adminId: user.role === "admin" ? user._id : user.adminId,
+      userId: user._id
+    });
 
-
-        // save to DB
-        const savedFlight = await flight.save();
-
-        res.status(201).json({
-            message: "Flight booking created successfully",
-            flights_Data: savedFlight,
-        });
-    } catch (error) {
-        console.error("Error saving flight:", error);
-
-        // handle mongoose validation errors
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                error: "Validation failed",
-                details: Object.values(error.errors).map((err) => err.message),
-            });
-        }
-        res.status(500).json({ error: "Failed to save flight" });
-    }
+    res.json({ message: "Booking created successfully", booking });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
 };
 
 

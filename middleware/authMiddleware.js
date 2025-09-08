@@ -17,7 +17,7 @@ export const Authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Fetch user from DB and include role
-    const user = await userModel.findById(decoded.id).select("_id email name role adminId");
+    const user = await userModel.findById(decoded.id).select("_id email name role adminId organisationId");
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
@@ -30,6 +30,8 @@ export const Authenticate = async (req, res, next) => {
       name: user.name,
       role: user.role,
       adminId: decoded.adminId || user.adminId, // make sure adminId is available
+      organisationId: user.organisationId   // important
+      
     };
     next();
   } catch (error) {
