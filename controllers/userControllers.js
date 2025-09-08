@@ -1,6 +1,7 @@
 // controllers/authUserController.js
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
+import mongoose from "mongoose";
 
 // Generate JWT
 const generateToken = (user) => {
@@ -21,7 +22,7 @@ const generateToken = (user) => {
 
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "1d" }
   );
 };
 
@@ -98,114 +99,34 @@ export const login = async (req, res) => {
   }
 };
 
-
-// // Signup Controller
-// export const signup = async (req, res) => {
-//   try {
-//     const { name, EmpUsername, email, phone, password, confirmPassword, role, isActive, permissions, lastLogin, adminId } = req.body;
-
-//     if (password !== confirmPassword) {
-//       return res.status(400).json({ message: "Passwords do not match" });
-//     }
-
-//     // Check for existing email/phone
-//     const existingUser = await userModel.findOne({
-//       $or: [{ email }, { phone }]
-//     });
-
-//     if (existingUser) {
-//       return res.status(400).json({ message: "Email or Phone number already exists" });
-//     }
-
-//     // Decide adminId
-//     let assignedAdminId = null;
-//     if (role === "admin") {
-//       assignedAdminId = null; // self-assigned later
-//     } else {
-//       assignedAdminId = adminId || req.user?._id;
-//       if (!assignedAdminId) {
-//         return res.status(400).json({ message: "Admin ID is required for user signup" });
-//       }
-//     }
-
-//     // Permissions handling
-//     let finalPermissions = {};
-//     if (role !== "admin") {
-//       finalPermissions = permissions || {}; // user-level permissions sent from frontend
-//     }
-
-//     // Create user
-//     const newUser = new userModel({
-//       name,
-//       EmpUsername,
-//       email,
-//       phone,
-//       password,
-//       role,
-//       isActive,
-//       lastLogin,
-//       adminId: assignedAdminId,
-//       permissions: finalPermissions
-//     });
-
-//     const savedUser = await newUser.save();
-
-//     // If it's an admin, set their own adminId = their id
-//     if (role === "admin" && !savedUser.adminId) {
-//       savedUser.adminId = savedUser._id;
-//       await savedUser.save();
-//     }
-
-//     const token = generateToken(savedUser);
-
-//     res.status(201).json({
-//       message: "User created successfully",
-//       token,
-//       user: {
-//         id: savedUser._id,
-//         name: savedUser.name,
-//         EmpUsername: savedUser.EmpUsername,
-//         email: savedUser.email,
-//         role: savedUser.role,
-//         adminId: savedUser.adminId,
-//         permissions: savedUser.permissions
-//       }
-//     });
-//   } catch (err) {
-//     res.status(500).json({ msg: "Server error", error: err.message });
-//   }
-// };
-
-
-
                                                                                                                                                                            
+export const getAllUsers = async (req, res) => {
+  try {
+    let query = {};
 
-// export const getAllUsers = async (req, res) => {
-//   try {
-//     let query = {};
+    if (req.user.role === "admin") {
+      // Get only users from this admin's organisation, excluding admin himself
+      query = {
+        organisationId: new mongoose.Types.ObjectId(req.user.organisationId),
+        role: "user", // only normal users
+        adminId: req.user._id // users created by this admin
+      };
+    } else {
+      // Normal user → can only see themselves
+      query = { _id: req.user._id };
+    }
 
-//     if (req.user.role === "admin") {
-//       // Get only users created by this admin, exclude the admin himself
-//       query = {
-//         adminId: new mongoose.Types.ObjectId(req.user._id),
-//         role: { $ne: "admin" }
-//       };
-//     } else {
-//       // Normal user should not see others (only himself)
-//       query = { _id: req.user._id };
-//     }
+    const users = await userModel.find(query).select("-password");
 
-//     const users = await userModel.find(query).select("-password"); // Exclude password
-
-//     res.status(200).json({
-//       message: "All users fetched successfully",
-//       users,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// };
-
+    res.status(200).json({
+      message: "Users fetched successfully",
+      totolUser: users.length,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 // // Update User
 // export const updateUser = async (req, res) => {

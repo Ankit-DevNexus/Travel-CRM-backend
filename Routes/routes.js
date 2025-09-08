@@ -1,6 +1,6 @@
 import express from "express";
-import { login, signup } from "../controllers/userControllers.js";
-import { createFlightAndHotelBooking, getAllFlightBooking, getBookedFlightById } from "../controllers/flightAndHotelBookingControllers.js";
+import { getAllUsers, login, signup } from "../controllers/userControllers.js";
+import { createFlightAndHotelBooking, getAllFlightBooking, getBookedFlightById, updateFlightBooking } from "../controllers/flightAndHotelBookingControllers.js";
 import { Authenticate } from "../middleware/authMiddleware.js";
 import { RegisterOrganisation } from "../controllers/OrganisationController.js";
 
@@ -20,11 +20,15 @@ router.post("/register", RegisterOrganisation);
 router.post("/signup-user", Authenticate, signup);
 router.post("/sigin-user", login);
 
+router.get("/get-all-users", Authenticate, getAllUsers);
+
 
 //Flight Booking
 router.post('/create-flight-hotel-booking', Authenticate, createFlightAndHotelBooking);
 router.get('/all-booked-flight-hotel', Authenticate, getAllFlightBooking);
 router.get("/all-booked-flight-hotel/:id", Authenticate, getBookedFlightById);
+
+router.patch("/all-booked-flight-hotel/update/:id", Authenticate, updateFlightBooking);
 
 //hotel Booking
 // router.post("/create-hotel-booking", Authenticate, createHotelBooking);
