@@ -1,14 +1,15 @@
 import organizationModel from "../models/OrganisationModel.js";
 import userModel from "../models/userModel.js";
-import bcrypt from "bcrypt";
 
 export const RegisterOrganisation = async (req, res) => {
   try {
     const { companyName, industry, adminEmail, adminPhone, password, billing, address, logoUrl, gstNumber } = req.body;
 
     const org = await organizationModel.create({
-      companyName, industry, adminEmail, adminPhone,
-      password: await bcrypt.hash(password, 10),
+      companyName, 
+      industry, 
+      adminEmail, 
+      adminPhone,
       billing,
       address,
       logoUrl,
@@ -21,7 +22,8 @@ export const RegisterOrganisation = async (req, res) => {
       phone: adminPhone,
       password,
       role: "admin",
-      organisationId: org._id
+      organisationId: org._id,
+      EmpUsername: adminEmail.split("@")[0]  // fallback
     });
 
     res.json({ message: "Organisation registered", org, admin });

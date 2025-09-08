@@ -46,8 +46,8 @@ export const getAllFlightBooking = async (req, res) => {
         // fetch data
         // promise.all([]) run queries in parallel
         const [flights, totalLeads] = await Promise.all([
-            flightBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
-            flightBookingModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
+            flightAndHotelBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
+            flightAndHotelBookingModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
         ]);
 
         res.status(200).json({
@@ -81,7 +81,7 @@ export const getBookedFlightById = async (req, res) => {
         }
 
         // fetch flight
-        const flight = await flightBookingModel.findById(id);
+        const flight = await flightAndHotelBookingModel.findById(id);
 
         if (!flight) {
             return res.status(404).json({
@@ -103,48 +103,78 @@ export const getBookedFlightById = async (req, res) => {
     }
 };
 
-
-
 export const updateFlightBooking = async (req, res) => {
-    try {
-        const { leadIds } = req.body;       // Array of Lead IDs
-        const updateData = req.body.updateData; // Fields to update
+  try {
+    const user = req.user; // logged-in user
+    const { bookingId } = req.params;
 
-        if (!Array.isArray(leadIds) || leadIds.length === 0) {
-            return res.status(400).json({ message: "leadIds must be a non-empty array" });
-        }
+    // Find booking
+    const booking = await flightAndHotelBookingModel.findById(bookingId);
+    if (!booking) return res.status(404).json({ msg: "Booking not found" });
 
-        let query = {};
-        if (req.user.role === "admin") {
-            query.adminId = new mongoose.Types.ObjectId(req.user._id);
-        } else {
-            query.adminId = new mongoose.Types.ObjectId(req.user.adminId);
-            query.assignedTo = String(req.user._id);
-        }
-
-        query._id = { $in: leadIds.map(id => new mongoose.Types.ObjectId(id)) };
-
-        // Perform update
-        const result = await LeadsModel.updateMany(
-            query,
-            { $set: updateData },
-            { new: true }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ message: "No matching leads found or permission denied" });
-        }
-
-        return res.status(200).json({
-            message: "Leads updated successfully",
-            matched: result.matchedCount,
-            modified: result.modifiedCount
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Error updating leads",
-            error: error.message
-        });
+    // Access control
+    if (user.role === "user") {
+      if (booking.userId.toString() !== user._id.toString()) {
+        return res.status(403).json({ msg: "Not allowed to update this booking" });
+      }
+    } else if (user.role === "admin") {
+      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+        return res.status(403).json({ msg: "Not allowed to update this booking" });
+      }
     }
-}
+
+    // Update booking (only provided fields from req.body)
+    Object.assign(booking, req.body);
+    await booking.save();
+
+    res.json({ message: "Booking updated successfully", booking });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
+};
+
+
+
+// export const updateFlightBooking = async (req, res) => {
+//     try {
+//         const { leadIds } = req.body;       // Array of Lead IDs
+//         const updateData = req.body.updateData; // Fields to update
+
+//         if (!Array.isArray(leadIds) || leadIds.length === 0) {
+//             return res.status(400).json({ message: "leadIds must be a non-empty array" });
+//         }
+
+//         let query = {};
+//         if (req.user.role === "admin") {
+//             query.adminId = new mongoose.Types.ObjectId(req.user._id);
+//         } else {
+//             query.adminId = new mongoose.Types.ObjectId(req.user.adminId);
+//             query.assignedTo = String(req.user._id);
+//         }
+
+//         query._id = { $in: leadIds.map(id => new mongoose.Types.ObjectId(id)) };
+
+//         // Perform update
+//         const result = await LeadsModel.updateMany(
+//             query,
+//             { $set: updateData },
+//             { new: true }
+//         );
+
+//         if (result.matchedCount === 0) {
+//             return res.status(404).json({ message: "No matching leads found or permission denied" });
+//         }
+
+//         return res.status(200).json({
+//             message: "Leads updated successfully",
+//             matched: result.matchedCount,
+//             modified: result.modifiedCount
+//         });
+
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: "Error updating leads",
+//             error: error.message
+//         });
+//     }
+// }
