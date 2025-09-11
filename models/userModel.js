@@ -12,7 +12,7 @@ const UserSchema = new mongoose.Schema({
     sparse: true   // allows multiple docs with null
 
   },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone: String,
   password: { type: String, required: true },
   role: { type: String, enum: ["admin", "user"], default: "user" },

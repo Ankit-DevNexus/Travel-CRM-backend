@@ -161,24 +161,59 @@ export const getAllUsers = async (req, res) => {
 //   }
 // };
 
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "No update data provided" });
+    }
+
+    // Get allowed schema keys
+    const allowedUpdates = Object.keys(userModel.schema.paths);
+
+    // Filter req.body to only include valid schema fields
+    const updates = {};
+    for (const key of Object.keys(req.body)) {
+      if (allowedUpdates.includes(key)) {
+        updates[key] = req.body[key];
+      }
+    }
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      id,
+      { $set: updates }, // only update provided fields
+      { new: true } // return updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 // // Delete user
-// export const deleteUser = async (req, res) => {
-//   try {
-//     const { id } = req.params;
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-//     const deletedUser = await userModel.findByIdAndDelete(id);
+    const deletedUser = await userModel.findByIdAndDelete(id);
 
-//     if (!deletedUser) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-//     res.status(200).json({
-//       message: "User deleted successfully",
-//       user: deletedUser
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error deleting user", error: error.message });
-//   }
-// };
+    res.status(200).json({
+      message: "User deleted successfully",
+      user: deletedUser
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting user", error: error.message });
+  }
+};
 

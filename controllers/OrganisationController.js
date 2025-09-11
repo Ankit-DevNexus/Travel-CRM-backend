@@ -6,9 +6,9 @@ export const RegisterOrganisation = async (req, res) => {
     const { companyName, industry, adminEmail, adminPhone, password, billing, address, logoUrl, gstNumber } = req.body;
 
     const org = await organizationModel.create({
-      companyName, 
-      industry, 
-      adminEmail, 
+      companyName,
+      industry,
+      adminEmail,
       adminPhone,
       billing,
       address,
@@ -16,15 +16,18 @@ export const RegisterOrganisation = async (req, res) => {
       gstNumber
     });
 
-    const admin = await userModel.create({
+    const admin = new userModel({
+      EmpUsername: adminEmail.split("@")[0],
       name: companyName,
       email: adminEmail,
       phone: adminPhone,
       password,
       role: "admin",
       organisationId: org._id,
-      EmpUsername: adminEmail.split("@")[0]  // fallback
     });
+    
+    await admin.save();  // ensures pre('save') runs and password is hashed
+
 
     res.json({ message: "Organisation registered", org, admin });
   } catch (err) {
