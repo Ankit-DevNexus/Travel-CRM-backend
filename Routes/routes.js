@@ -1,8 +1,10 @@
 import express from "express";
-import { getAllUsers, login, signup } from "../controllers/userControllers.js";
-import { createFlightAndHotelBooking, getAllFlightBooking, getBookedFlightById, updateFlightBooking } from "../controllers/flightAndHotelBookingControllers.js";
+import { deleteUser, getAllUsers, login, signup, updateUser } from "../controllers/userControllers.js";
+import { createFlightAndHotelBooking, deleteFlightAndHotelBooking, getAllFlightAndHotelBooking,  getBookedFlightAndHotelById,  updateFlightAndHotelBooking } from "../controllers/flightAndHotelBookingControllers.js";
 import { Authenticate } from "../middleware/authMiddleware.js";
 import { RegisterOrganisation } from "../controllers/OrganisationController.js";
+import { createHolidayPackageBooking, deleteHolidayPackageBooking, getAllHolidayPackageBooking, getBookedHolidayPackageById, updateHolidayPackage } from "../controllers/CustomHolidayPackageController.js";
+import { createCoupon, getAllCoupon } from "../controllers/CouponController.js";
 
 const router = express.Router();
 
@@ -21,21 +23,38 @@ router.post("/signup-user", Authenticate, signup);
 router.post("/sigin-user", login);
 
 router.get("/get-all-users", Authenticate, getAllUsers);
+router.patch("/get-all-users/:id", Authenticate, updateUser);
+router.delete("/get-all-users/:id", Authenticate, deleteUser);
 
 
-//Flight Booking
-router.post('/create-flight-hotel-booking', Authenticate, createFlightAndHotelBooking);
-router.get('/all-booked-flight-hotel', Authenticate, getAllFlightBooking);
-router.get("/all-booked-flight-hotel/:id", Authenticate, getBookedFlightById);
+//Flight and Hotel Booking
+router.post('/booked-flight-hotel/create', Authenticate, createFlightAndHotelBooking);
+router.get('/all-booked-flight-hotel', Authenticate, getAllFlightAndHotelBooking);
+router.get("/all-booked-flight-hotel/:id", Authenticate, getBookedFlightAndHotelById);
 
-router.patch("/all-booked-flight-hotel/update/:id", Authenticate, updateFlightBooking);
+router.patch("/all-booked-flight-hotel/update/:id", Authenticate, updateFlightAndHotelBooking);
 
-//hotel Booking
-// router.post("/create-hotel-booking", Authenticate, createHotelBooking);
-// router.get("/all-booked-hotel", Authenticate, getAllHotelBooking);
-// router.get("/all-booked-hotel/:id", Authenticate, getBookedHotelById);
+router.delete("/all-booked-flight-hotel/delete/:id", Authenticate, deleteFlightAndHotelBooking);
+
+
+// Custom Holiday Package
+router.post('/book-holiday-package/create', Authenticate, createHolidayPackageBooking);
+router.get('/all-booked-holiday-package', Authenticate, getAllHolidayPackageBooking);
+router.get("/all-booked-holiday-package/:id", Authenticate, getBookedHolidayPackageById);
+
+router.patch("/all-booked-holiday-package/update/:id", Authenticate, updateHolidayPackage);
+
+router.delete("/all-booked-holiday-package/delete/:id", Authenticate, deleteHolidayPackageBooking);
+
+
+// coupon 
+router.post('/coupon/create', Authenticate, createCoupon);
+router.get('/all-coupon', Authenticate, getAllCoupon);
+
+
 
 export default router;
+
 
 
 

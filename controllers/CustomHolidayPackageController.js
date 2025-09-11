@@ -1,15 +1,19 @@
-import mongoose from "mongoose";
-import flightAndHotelBookingModel from "../models/flightAndHotelBookingModel.js";
+import express from "express";
+import HolidayPackageBookingModel from "../models/CustomHolidayPackageModel.js";
 import { v4 as uuidv4 } from "uuid";
+import mongoose from "mongoose";
 
-export const createFlightAndHotelBooking = async (req, res) => {
+const router = express.Router();
+
+// Create booking
+export const createHolidayPackageBooking =  async (req, res) => {
   try {
     const user = req.user;
 
     // Unique booking ID using UUID
     const uniqueBookingId = "USR-" + uuidv4().split("-")[0].toUpperCase();
 
-    const bookingData = await flightAndHotelBookingModel.create({
+    const bookingData = await HolidayPackageBookingModel.create({
       ...req.body,
       uniqueBookingId,
       organisationId: user.organisationId,
@@ -17,22 +21,48 @@ export const createFlightAndHotelBooking = async (req, res) => {
       userId: user._id,
     });
 
-    res.json({ message: "Booking created successfully", bookingData });
+    res.json({ message: "Holiday package booking created successfully", bookingData });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
-};
+}
+
+// export const createHolidayPackageBooking = async (req, res) => {
+//   try {
+//     const user = req.user;
+
+//     // generate unique ID
+//     const uniqueBookingId = "USR-" + uuidv4().split("-")[0].toUpperCase();
+
+//     const bookingPayload = {
+//       uniqueBookingId,
+//       querySource: req.body?.querySource || {},   // safe fallback
+//       hotelBooking: req.body?.hotelBooking || {},
+//       transportAndActivities: req.body?.transportAndActivities || [],
+//       flightBooking: req.body?.flightBooking || {},
+//       organisationId: user.organisationId,
+//       adminId: user.adminId,
+//       userId: user._id,
+//     };
+
+//     const bookingData = await HolidayPackageBookingModel.create(bookingPayload);
+
+//     res.json({
+//       message: "Holiday package booking created successfully",
+//       bookingData,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 
-export const getAllFlightAndHotelBooking = async (req, res) => {
-    try {
+// Get all bookings
 
-        //  pagination
-        // comes from frontend (e.g., ?currentPage=2&limit=10
-        // If frontend doesn’t send it, default currentPage = 1 and limit = 7.
-        // limit → how many documents per page.
 
-        const currentPage = parseInt(req.query.currentPage) || 1;
+export const getAllHolidayPackageBooking = async (req, res) => {
+  try {
+    const currentPage = parseInt(req.query.currentPage) || 1;
         const limit = parseInt(req.query.limit) || 7;
         const skip = (currentPage - 1) * limit;
 
@@ -51,48 +81,45 @@ export const getAllFlightAndHotelBooking = async (req, res) => {
 
         // fetch data
         // promise.all([]) run queries in parallel
-        const [flights, totalLeads] = await Promise.all([
-            flightAndHotelBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
-            flightAndHotelBookingModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
+        const [Holiday, totalLeads] = await Promise.all([
+            HolidayPackageBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
+            HolidayPackageBookingModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
         ]);
 
         res.status(200).json({
-            message: "All booked flights and hotels fetched successfully",
+            message: "All holiday package fetched successfully",
             totalLeads,
             currentPage,
             totalPages: Math.ceil(totalLeads / limit),
-            data: flights,
+            data: Holiday,
         });
-
-    } catch (error) {
-        console.error("Error fetching flights:", error);
-
-        res.status(500).json({
-            error: "Failed to fetch flights",
-            details: error.message,
-        });
-    }
-};
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
 
-export const getBookedFlightAndHotelById = async (req, res) => {
-    try {
-        const { id } = req.params;
+// Get booking by ID
+export const getBookedHolidayPackageById =  async (req, res) => {
+  try {
+    const { id } = req.params;
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ error: "Invalid flight ID" });
         }
 
-        const flight = await flightAndHotelBookingModel.findById(id);
-        if (!flight) return res.status(404).json({ error: "Flight and Hotels details not found" });
+        const holiday = await HolidayPackageBookingModel.findById(id);
+        if (!holiday) return res.status(404).json({ error: "Holiday package details not found" });
 
-        res.status(200).json({ message: "Flight and Hotels details fetched successfully", data: flight });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch flight and Hotels details", details: error.message });
-    }
-};
+    res.status(200).json({ message: "Holiday package details fetched successfully", data: holiday });
+    res.json(holiday);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
-export const updateFlightAndHotelBooking = async (req, res) => {
-    try {
+// Update booking
+export const updateHolidayPackage = async (req, res) => {
+  try {
         const user = req.user;
         const { id } = req.params;
 
@@ -100,7 +127,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
             return res.status(400).json({ msg: "Invalid booking ID format" });
         }
 
-        let booking = await flightAndHotelBookingModel.findById(id);
+        let booking = await HolidayPackageBookingModel.findById(id);
         if (!booking) return res.status(404).json({ msg: "Booking not found" });
 
         // Access control
@@ -130,7 +157,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
         const updateFields = flattenObject(req.body);
 
         // Apply update using $set
-        booking = await flightAndHotelBookingModel.findByIdAndUpdate(
+        booking = await HolidayPackageBookingModel.findByIdAndUpdate(
             id,
             { $set: updateFields },
             { new: true }
@@ -140,11 +167,11 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     } catch (err) {
         res.status(500).json({ msg: err.message });
     }
-};
+}
 
-
-export const deleteFlightAndHotelBooking = async (req, res) => {
-    try {
+// Delete booking
+export const deleteHolidayPackageBooking = async (req, res) => {
+try {
         const user = req.user;
         const { id } = req.params;
 
@@ -154,7 +181,7 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
         }
 
         // Find booking
-        const booking = await flightAndHotelBookingModel.findById(id);
+        const booking = await HolidayPackageBookingModel.findById(id);
         if (!booking) {
             return res.status(404).json({ msg: "Booking not found" });
         }
@@ -178,4 +205,6 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
         console.error("Error deleting booking:", err);
         res.status(500).json({ msg: err.message });
     }
-};
+}
+
+export default router;

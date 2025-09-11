@@ -5,42 +5,74 @@ dotenv.config();
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 
+// export const Authenticate = async (req, res, next) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+
+//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+//       return res.status(401).json({ message: "No token provided" });
+//     }
+
+//     const token = authHeader.split(" ")[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     // Fetch user from DB and include role
+//     const user = await userModel.findById(decoded.id).select("_id email name role adminId organisationId");
+//     if (!user) {
+//       return res.status(401).json({ message: "User not found" });
+//     }
+
+//     // req.user = user; // now req.user is available in controllers
+//     // Attach user object + adminId from JWT
+//     req.user = {
+//       _id: user._id,
+//       email: user.email,
+//       name: user.name,
+//       role: user.role,
+//       adminId: decoded.adminId || user.adminId, // make sure adminId is available
+//       organisationId: user.organisationId   // important
+//     };
+
+//     req.user = {
+//       _id: user._id,
+//       role: user.role,
+//       organisationId: user.organisationId,
+//       adminId: user.role === "admin" ? user._id : user.adminId,
+//       email: user.email
+//     };
+//     next();
+//   } catch (error) {
+//     return res
+//       .status(401)
+//       .json({ message: "Invalid or expired token", error: error.message });
+//   }
+// };
+
+
 export const Authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ msg: "No token, authorization denied" });
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await userModel.findById(decoded.id).lean();
 
-    // Fetch user from DB and include role
-    const user = await userModel.findById(decoded.id).select("_id email name role adminId organisationId");
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
+    if (!user) return res.status(401).json({ msg: "Invalid user" });
 
-    // req.user = user; // now req.user is available in controllers
-    // Attach user object + adminId from JWT
+    // Ensure organisationId and adminId are always set
     req.user = {
       _id: user._id,
-      email: user.email,
-      name: user.name,
       role: user.role,
-      adminId: decoded.adminId || user.adminId, // make sure adminId is available
-      organisationId: user.organisationId   // important
-      
+      organisationId: user.organisationId,
+      adminId: user.role === "admin" ? user._id : user.adminId,
+      email: user.email
     };
+
     next();
-  } catch (error) {
-    return res
-      .status(401)
-      .json({ message: "Invalid or expired token", error: error.message });
+  } catch (err) {
+    res.status(401).json({ msg: "Token is not valid", error: err.message });
   }
 };
-
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

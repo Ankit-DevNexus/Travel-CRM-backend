@@ -18,8 +18,8 @@ getDashboardDB(MONGO_DB_URI);
 app.use(cors());
 app.use(bodyParser.json());
 
-app.use(express.json()); // <-- this is required to parse JSON bodies
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // this is required to parse JSON bodies
+app.use(express.urlencoded({ extended: true }));  // parses form-data
 
 app.use('/uploads', express.static('uploads'));
 
