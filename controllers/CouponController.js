@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import CouponModel from "../models/CouponModel.js";
 
 export const createCoupon = async (req, res) => {
@@ -18,18 +19,8 @@ export const createCoupon = async (req, res) => {
     }
 }
 
-
 export const getAllCoupon = async (req, res) => {
-     try {
-
-        //  pagination
-        // comes from frontend (e.g., ?currentPage=2&limit=10
-        // If frontend doesn’t send it, default currentPage = 1 and limit = 7.
-        // limit → how many documents per page.
-
-        // const currentPage = parseInt(req.query.currentPage) || 1;
-        // const limit = parseInt(req.query.limit) || 7;
-        // const skip = (currentPage - 1) * limit;
+    try {
 
         let query = {};
 
@@ -37,27 +28,15 @@ export const getAllCoupon = async (req, res) => {
             query.adminId = req.user._id;
         } else if (req.user.role === "user") {
             query.$or = [
-                // { adminId: req.user.adminId, createdByEmail: req.user.email }, // user’s own leads
-                // { adminId: req.user.adminId, createdByRole: "admin" } 
                 { userId: req.user._id },        // user’s own bookings
                 { adminId: req.user.adminId }    // admin’s bookings         // admin’s leads
             ];
         }
 
-        // fetch data
-        // promise.all([]) run queries in parallel
-        // const [coupon, totalLeads] = await Promise.all([
-        //     CouponModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
-        //     CouponModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
-        // ]);
-
         const coupon = await CouponModel.find(query);
 
         res.status(200).json({
             message: "All booked flights and hotels fetched successfully",
-            // totalLeads,
-            // currentPage,
-            // totalPages: Math.ceil(totalLeads / limit),
             data: coupon,
         });
 
@@ -66,6 +45,97 @@ export const getAllCoupon = async (req, res) => {
 
         res.status(500).json({
             error: "Failed to fetch flights",
+            details: error.message,
+        });
+    }
+}
+
+
+export const getCouponById = async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid coupon ID" })
+        }
+
+        const coupon = await CouponModel.findById(id);
+        
+        if (!coupon) return res.status(404).json({ error: "Coupon details not found" })
+        res.status(200).json({
+            message: "Coupon fetched successfully",
+            data: coupon,
+        });
+
+    } catch (error) {
+        console.error("Error fetching Coupon:", error);
+
+        res.status(500).json({
+            error: "Failed to fetch Coupon",
+            details: error.message,
+        });
+    }
+}
+
+
+// Update Coupon
+export const updateCoupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid coupon ID" });
+        }
+
+        const updatedCoupon = await CouponModel.findByIdAndUpdate(
+            id,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedCoupon) {
+            return res.status(404).json({ error: "Coupon not found" });
+        }
+
+        res.status(200).json({
+            message: "Coupon updated successfully",
+            data: updatedCoupon,
+        });
+    } catch (error) {
+        console.error("Error updating Coupon:", error);
+        res.status(500).json({
+            error: "Failed to update Coupon",
+            details: error.message,
+        });
+    }
+};
+
+
+// Delete Coupon
+export const deleteCoupon = async (req, res) =>{
+    try {
+        
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid coupon ID"})
+        }
+        
+        const deleteCoupon = await CouponModel.findByIdAndDelete(id);
+
+        if (!deleteCoupon) {
+            return res.status(404).json({ error: "Coupon not found"})
+        }
+
+        res.status(200).json({
+            message: "Coupon delete sccessfully",
+            data: deleteCoupon
+        })
+    } catch (error) {
+        console.error("Error deleting Coupon:", error);
+        res.status(500).json({
+            error: "Failed to delete Coupon",
             details: error.message,
         });
     }

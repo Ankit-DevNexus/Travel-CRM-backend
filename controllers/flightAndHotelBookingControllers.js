@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import flightAndHotelBookingModel from "../models/flightAndHotelBookingModel.js";
 import { v4 as uuidv4 } from "uuid";
+import SalesDataModel from "../models/SalesDataModel.js";
 
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
@@ -26,12 +27,7 @@ export const createFlightAndHotelBooking = async (req, res) => {
 
 export const getAllFlightAndHotelBooking = async (req, res) => {
     try {
-
-        //  pagination
-        // comes from frontend (e.g., ?currentPage=2&limit=10
-        // If frontend doesn’t send it, default currentPage = 1 and limit = 7.
-        // limit → how many documents per page.
-
+        // Pagination setup
         const currentPage = parseInt(req.query.currentPage) || 1;
         const limit = parseInt(req.query.limit) || 7;
         const skip = (currentPage - 1) * limit;
@@ -39,21 +35,21 @@ export const getAllFlightAndHotelBooking = async (req, res) => {
         let query = {};
 
         if (req.user.role === "admin") {
-            query.adminId = req.user._id;
+            // Admin should see everything created in his organisation
+            query.organisationId = req.user.organisationId;
         } else if (req.user.role === "user") {
-            query.$or = [
-                // { adminId: req.user.adminId, createdByEmail: req.user.email }, // user’s own leads
-                // { adminId: req.user.adminId, createdByRole: "admin" } 
-                { userId: req.user._id },        // user’s own bookings
-                { adminId: req.user.adminId }    // admin’s bookings         // admin’s leads
-            ];
+            // User should only see his own bookings
+            query.userId = req.user._id;
         }
 
-        // fetch data
-        // promise.all([]) run queries in parallel
+        // Fetch data in parallel
         const [flights, totalLeads] = await Promise.all([
-            flightAndHotelBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
-            flightAndHotelBookingModel.countDocuments(query) //→ gets the total number of records (needed to calculate total pages).
+            flightAndHotelBookingModel
+                .find(query)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }),
+            flightAndHotelBookingModel.countDocuments(query)
         ]);
 
         res.status(200).json({
@@ -91,6 +87,7 @@ export const getBookedFlightAndHotelById = async (req, res) => {
     }
 };
 
+
 export const updateFlightAndHotelBooking = async (req, res) => {
     try {
         const user = req.user;
@@ -114,7 +111,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
             }
         }
 
-        // Flatten request body into dot notation keys
+        // Flatten request body
         const flattenObject = (obj, parentKey = "", res = {}) => {
             for (let key in obj) {
                 const newKey = parentKey ? `${parentKey}.${key}` : key;
@@ -129,12 +126,28 @@ export const updateFlightAndHotelBooking = async (req, res) => {
 
         const updateFields = flattenObject(req.body);
 
-        // Apply update using $set
+        // Apply update
         booking = await flightAndHotelBookingModel.findByIdAndUpdate(
             id,
             { $set: updateFields },
             { new: true }
         );
+
+        // If financial fields are updated, save into SalesDataCollection
+        if ("totalAmount" in updateFields || "paidAmount" in updateFields || "remainingAmount" in updateFields) {
+            await SalesDataModel.create({
+                bookingId: booking._id,
+                userId: booking.userId,
+                organisationId: booking.organisationId,
+                totalAmount: booking.totalAmount,
+                paidAmount: booking.paidAmount,
+                remainingAmount: booking.remainingAmount,
+                updatedBy: user._id
+            });
+
+            // Delete the booking from flightAndHotelBookingModel
+            await flightAndHotelBookingModel.findByIdAndDelete(id);
+        }
 
         res.json({ message: "Booking updated successfully", booking });
     } catch (err) {

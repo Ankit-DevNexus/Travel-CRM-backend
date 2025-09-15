@@ -34,3 +34,37 @@ export const RegisterOrganisation = async (req, res) => {
     res.status(500).json({ msg: err.message });
   }
 };
+
+
+
+export const getAllOrganisations = async (req, res) => {
+  try {
+    // Fetch all organisations
+    const organisations = await organizationModel.find().lean();
+
+    // For each organisation, find its admin(s)
+    const organisationsWithAdmins = await Promise.all(
+      organisations.map(async (org) => {
+        const admin = await userModel.findOne({
+          organisationId: org._id,
+          role: "admin",
+        }).select("-password"); // exclude password
+
+        return {
+          ...org,
+          admin,
+        };
+      })
+    );
+
+    res.status(200).json({
+      message: "All organisations fetched successfully",
+      organisations: organisationsWithAdmins,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching organisations",
+      error: error.message,
+    });
+  }
+};
