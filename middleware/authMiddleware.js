@@ -73,6 +73,8 @@ export const Authenticate = async (req, res, next) => {
     res.status(401).json({ msg: "Token is not valid", error: err.message });
   }
 };
+
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
