@@ -138,6 +138,10 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: 'New',
     },
+    AssignedTo: {
+      type: String,
+      default: null,
+    },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
