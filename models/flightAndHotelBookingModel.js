@@ -6,15 +6,15 @@ const flightBookingSchema = new mongoose.Schema({
   flightBookingId: { type: String, default: uuidv4 }, // unique flight booking id
   passengerDetails: Object,
   flightDetails: Object,
-    totalAmount: {
+  totalAmount: {
     type: Number,
     default: 0
   },
-  PaidAmount: {
+  paidAmount: {
     type: Number,
     default: 0
   },
-  RemainingAmount: {
+  remainingAmount: {
     type: Number,
     default: 0
   }
@@ -28,11 +28,11 @@ const hotelBookingSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  PaidAmount: {
+  paidAmount: {
     type: Number,
     default: 0
   },
-  RemainingAmount: {
+  remainingAmount: {
     type: Number,
     default: 0
   }

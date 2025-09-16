@@ -10,7 +10,8 @@ const SalesDataSchema = new mongoose.Schema({
     remainingAmount: { type: Number, required: true },
 
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }
-}, { timestamps: true });
+}, { timestamps: true, strict: false
+ });
 
 const SalesDataModel = mongoose.model("SalesDataCollection", SalesDataSchema);
 
