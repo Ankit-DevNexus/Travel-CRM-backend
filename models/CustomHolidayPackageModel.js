@@ -136,6 +136,7 @@ const bookingSchema = new mongoose.Schema(
 
     Status: {
       type: String,
+      default: 'New',
     },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
