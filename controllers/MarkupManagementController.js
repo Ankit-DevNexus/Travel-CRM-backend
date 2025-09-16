@@ -19,7 +19,6 @@ export const CreateMarkupManagement = async (req, res) => {
     }
 };
 
-
 export const getAllMarkupManagement = async (req, res) => {
     try {
         // const user = req.user;
@@ -47,8 +46,6 @@ export const getAllMarkupManagement = async (req, res) => {
     }
 }
 
-
-
 export const getMarkupManagementById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -64,8 +61,6 @@ export const getMarkupManagementById = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch markup details", details: error.message });
     }
 }
-
-
 
 export const updateMarkupManagement= async (req, res) => {
      try {

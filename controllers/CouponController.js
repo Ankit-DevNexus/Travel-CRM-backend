@@ -13,7 +13,7 @@ export const createCoupon = async (req, res) => {
             userId: user._id,
         });
 
-        res.json({ message: "Booking created successfully", couponData });
+        res.json({ message: "Coupon created successfully", couponData });
     } catch (error) {
         res.status(500).json({ msg: err.message });
     }
@@ -36,15 +36,16 @@ export const getAllCoupon = async (req, res) => {
         const coupon = await CouponModel.find(query);
 
         res.status(200).json({
-            message: "All booked flights and hotels fetched successfully",
+            message: "Coupon fetched successfully",
+            totolCoupon: coupon.length, 
             data: coupon,
         });
 
     } catch (error) {
-        console.error("Error fetching flights:", error);
+        console.error("Error fetching Coupon:", error);
 
         res.status(500).json({
-            error: "Failed to fetch flights",
+            error: "Failed to fetch Coupon",
             details: error.message,
         });
     }
@@ -110,7 +111,6 @@ export const updateCoupon = async (req, res) => {
         });
     }
 };
-
 
 // Delete Coupon
 export const deleteCoupon = async (req, res) =>{
