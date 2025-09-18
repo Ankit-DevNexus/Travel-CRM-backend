@@ -1,54 +1,66 @@
+import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
-import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
+const flightBookingSchema = new mongoose.Schema(
+  {
+    flightBookingId: { type: String, default: uuidv4 }, // unique flight booking id
+    passengerDetails: Object,
+    flightDetails: Object,
+    totalAmount: {
+      type: Number,
+      default: 0,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    remainingAmount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false, timestamps: true }
+);
 
-const flightBookingSchema = new mongoose.Schema({
-  flightBookingId: { type: String, default: uuidv4 }, // unique flight booking id
-  passengerDetails: Object,
-  flightDetails: Object,
-  totalAmount: {
-    type: Number,
-    default: 0
+const hotelBookingSchema = new mongoose.Schema(
+  {
+    hotelBookingId: { type: String, default: uuidv4 }, // unique hotel booking id
+    guestDetails: Object,
+    hotelDetails: Object,
+    totalAmount: {
+      type: Number,
+      default: 0,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    remainingAmount: {
+      type: Number,
+      default: 0,
+    },
   },
-  paidAmount: {
-    type: Number,
-    default: 0
-  },
-  remainingAmount: {
-    type: Number,
-    default: 0
-  }
-}, { _id: false, timestamps: true });
-
-const hotelBookingSchema = new mongoose.Schema({
-  hotelBookingId: { type: String, default: uuidv4 }, // unique hotel booking id
-  guestDetails: Object,
-  hotelDetails: Object,
-  totalAmount: {
-    type: Number,
-    default: 0
-  },
-  paidAmount: {
-    type: Number,
-    default: 0
-  },
-  remainingAmount: {
-    type: Number,
-    default: 0
-  }
-  
-}, { _id: false, timestamps: true});
+  { _id: false, timestamps: true }
+);
 
 const bookingSchema = new mongoose.Schema({
   uniqueBookingId: { type: String, unique: true }, // custom booking ID
 
-  organisationId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", required: true },
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  organisationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true,
+  },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
   bookingType: {
     flightBooking: flightBookingSchema,
-    hotelBooking: hotelBookingSchema
+    hotelBooking: hotelBookingSchema,
   },
   // queryType: {
   //   type: String,
@@ -60,14 +72,16 @@ const bookingSchema = new mongoose.Schema({
   // },
   AssignedTo: {
     type: String,
-    default: null
+    default: null,
   },
   Status: {
     type: String,
-    default: null
-  }
-},);
+    default: null,
+  },
+});
 
-
-const flightAndHotelBookingModel = mongoose.model("FlightAndHotelBookingCollection", bookingSchema);
+const flightAndHotelBookingModel = mongoose.model(
+  'FlightAndHotelBookingCollection',
+  bookingSchema
+);
 export default flightAndHotelBookingModel;
