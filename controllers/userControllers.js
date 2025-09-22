@@ -1,54 +1,51 @@
 // controllers/authUserController.js
-import jwt from "jsonwebtoken";
-import userModel from "../models/userModel.js";
-import mongoose from "mongoose";
+import jwt from 'jsonwebtoken';
+import userModel from '../models/userModel.js';
+import mongoose from 'mongoose';
 
 // Generate JWT
 const generateToken = (user) => {
-    //  console.log("id: user._id, email: user.email,name: user.name, role: user.role",id, email, name, role);
+  //  console.log("id: user._id, email: user.email,name: user.name, role: user.role",id, email, name, role);
   return jwt.sign(
     {
       id: user._id,
       email: user.email,
       name: user.name,
       role: user.role,
-      adminId: 
-          user.role === "admin"
+      adminId:
+        user.role === 'admin'
           ? user._id.toString()
           : user.adminId
           ? user.adminId.toString()
           : null, // fallback if no admin assigned
-          organisationId: user.organisationId   // important
-
+      organisationId: user.organisationId, // important
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: '1d' }
   );
 };
 
 export const signup = async (req, res) => {
   try {
-
     // console.log("Request body:", req.body);
 
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ msg: "Not allowed" });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ msg: 'Not allowed' });
     }
 
     const newUser = await userModel.create({
       ...req.body,
-      EmpUsername: req.body.EmpUsername || req.body.email.split("@")[0], // fallback
-      role: "user", // always user
+      EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0], // fallback
+      role: 'user', // always user
       organisationId: req.user.organisationId,
-      adminId: req.user._id
+      adminId: req.user._id,
     });
 
     res.status(201).json(newUser);
   } catch (err) {
-    res.status(400).json({ msg: "Error creating user", error: err.message });
+    res.status(400).json({ msg: 'Error creating user', error: err.message });
   }
 };
-
 
 // // Login Controller
 export const login = async (req, res) => {
@@ -65,22 +62,24 @@ export const login = async (req, res) => {
     const user = await userModel.findOne(query);
 
     if (!user || !user.isActive)
-      return res.status(400).json({ msg: "Invalid username or account disabled" });
+      return res
+        .status(400)
+        .json({ msg: 'Invalid username or account disabled' });
 
     // Validate role
     if (role && user.role !== role) {
-      return res.status(403).json({ msg: "Access denied: Role mismatch" });
+      return res.status(403).json({ msg: 'Access denied: Role mismatch' });
     }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return res.status(401).json({ msg: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ msg: 'Invalid credentials' });
 
     user.lastLogin = new Date();
 
     user.loginHistory.push({
       loginAt: user.lastLogin,
       ip: req.ip,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
     });
 
     await user.save();
@@ -89,42 +88,40 @@ export const login = async (req, res) => {
 
     // In your login controller
     res.status(200).json({
-      message: "Login successful",
+      message: 'Login successful',
       token,
-      user
+      user,
     });
-
   } catch (err) {
-    res.status(500).json({ msg: "Server error", error: err.message });
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
 
-                                                                                                                                                                           
 export const getAllUsers = async (req, res) => {
   try {
     let query = {};
 
-    if (req.user.role === "admin") {
+    if (req.user.role === 'admin') {
       // Get only users from this admin's organisation, excluding admin himself
       query = {
         organisationId: new mongoose.Types.ObjectId(req.user.organisationId),
-        role: "user", // only normal users
-        adminId: req.user._id // users created by this admin
+        role: 'user', // only normal users
+        adminId: req.user._id, // users created by this admin
       };
     } else {
       // Normal user → can only see themselves
       query = { _id: req.user._id };
     }
 
-    const users = await userModel.find(query).select("-password");
+    const users = await userModel.find(query).select('-password');
 
     res.status(200).json({
-      message: "Users fetched successfully",
+      message: 'Users fetched successfully',
       totolUser: users.length,
       users,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -166,7 +163,7 @@ export const updateUser = async (req, res) => {
     const { id } = req.params;
 
     if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({ message: "No update data provided" });
+      return res.status(400).json({ message: 'No update data provided' });
     }
 
     // Get allowed schema keys
@@ -187,13 +184,13 @@ export const updateUser = async (req, res) => {
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     res.json(updatedUser);
   } catch (err) {
-    console.error("Error updating user:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Error updating user:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -205,15 +202,16 @@ export const deleteUser = async (req, res) => {
     const deletedUser = await userModel.findByIdAndDelete(id);
 
     if (!deletedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     res.status(200).json({
-      message: "User deleted successfully",
-      user: deletedUser
+      message: 'User deleted successfully',
+      user: deletedUser,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting user", error: error.message });
+    res
+      .status(500)
+      .json({ message: 'Error deleting user', error: error.message });
   }
 };
-
