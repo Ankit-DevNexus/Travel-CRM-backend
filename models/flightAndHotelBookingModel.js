@@ -24,7 +24,7 @@ const flightBookingSchema = new mongoose.Schema(
 
 const hotelBookingSchema = new mongoose.Schema(
   {
-    hotelBookingId: { type: String, default: uuidv4 }, // unique hotel booking id
+    hotelBookingId: { type: String, default: uuidv4 },
     guestDetails: Object,
     hotelDetails: Object,
     totalAmount: {
@@ -62,21 +62,13 @@ const bookingSchema = new mongoose.Schema({
     flightBooking: flightBookingSchema,
     hotelBooking: hotelBookingSchema,
   },
-  // queryType: {
-  //   type: String,
-  //   default: null
-  // },
-  // source: {
-  //   type: String,
-  //   default: null
-  // },
   AssignedTo: {
     type: String,
-    default: null,
+    default: 'null',
   },
   Status: {
     type: String,
-    default: null,
+    default: 'null',
   },
 });
 
