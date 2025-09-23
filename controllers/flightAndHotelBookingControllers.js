@@ -148,42 +148,33 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       { new: true }
     );
 
-    // Check if any financial fields (nested or root) are being updated
-    const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
-    const isFinancialUpdate = Object.keys(updateFields).some((key) =>
-      financialFields.some((field) => key.endsWith(field))
-    );
-    console.log('Sales Data Input:', {
+    let totalAmount = 0;
+    let paidAmount = 0;
+    let remainingAmount = 0;
+
+    // If booking has flightBooking
+    if (booking.bookingType?.flightBooking) {
+      totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
+      paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
+      remainingAmount += booking.bookingType.flightBooking.remainingAmount || 0;
+    }
+
+    // If booking has hotelBooking
+    if (booking.bookingType?.hotelBooking) {
+      totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
+      paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
+      remainingAmount += booking.bookingType.hotelBooking.remainingAmount || 0;
+    }
+
+    await SalesDataModel.create({
       bookingId: booking._id,
       userId: booking.userId,
       organisationId: booking.organisationId,
-      totalAmount: booking.totalAmount,
-      paidAmount: booking.paidAmount,
-      remainingAmount: booking.remainingAmount,
+      totalAmount,
+      paidAmount,
+      remainingAmount,
       updatedBy: user._id,
     });
-
-    if (isFinancialUpdate) {
-      try {
-        await SalesDataModel.create({
-          bookingId: booking._id,
-          userId: booking.userId,
-          organisationId: booking.organisationId,
-          totalAmount: booking.totalAmount,
-          paidAmount: booking.paidAmount,
-          remainingAmount: booking.remainingAmount,
-          updatedBy: user._id,
-        });
-
-        // Delete only after saving sales data successfully
-        await flightAndHotelBookingModel.findByIdAndDelete(id);
-      } catch (err) {
-        console.error('SalesData save failed:', err);
-        return res
-          .status(500)
-          .json({ msg: 'Failed to save Sales Data', error: err.message });
-      }
-    }
 
     res.json({ message: 'Booking updated successfully', booking });
   } catch (err) {
