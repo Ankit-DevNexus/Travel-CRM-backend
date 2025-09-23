@@ -123,7 +123,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     }
 
     // Flatten request body
-    const flattenObject = (obj, parentKey = '', res = {}) => {
+    const flattenObject = (obj, parentKey = '', resObj = {}) => {
       for (let key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key;
         if (
@@ -131,12 +131,12 @@ export const updateFlightAndHotelBooking = async (req, res) => {
           !Array.isArray(obj[key]) &&
           obj[key] !== null
         ) {
-          flattenObject(obj[key], newKey, res);
+          flattenObject(obj[key], newKey, resObj);
         } else {
-          res[newKey] = obj[key];
+          resObj[newKey] = obj[key];
         }
       }
-      return res;
+      return resObj;
     };
 
     const updateFields = flattenObject(req.body);
@@ -148,39 +148,146 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       { new: true }
     );
 
-    let totalAmount = 0;
-    let paidAmount = 0;
-    let remainingAmount = 0;
+    let salesData = null;
 
-    // If booking has flightBooking
-    if (booking.bookingType?.flightBooking) {
-      totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
-      paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
-      remainingAmount += booking.bookingType.flightBooking.remainingAmount || 0;
+    // Check if financial fields are being updated
+    const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
+    const isFinancialUpdate = Object.keys(updateFields).some((key) =>
+      financialFields.some((field) => key.endsWith(field))
+    );
+
+    if (isFinancialUpdate) {
+      // Compute totals from nested schema
+      let totalAmount = 0;
+      let paidAmount = 0;
+      let remainingAmount = 0;
+
+      if (booking.bookingType?.flightBooking) {
+        totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
+        paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
+        remainingAmount +=
+          booking.bookingType.flightBooking.remainingAmount || 0;
+      }
+
+      if (booking.bookingType?.hotelBooking) {
+        totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
+        paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
+        remainingAmount +=
+          booking.bookingType.hotelBooking.remainingAmount || 0;
+      }
+
+      salesData = await SalesDataModel.findOneAndUpdate(
+        { bookingId: booking._id }, // match existing sales record for this booking
+        {
+          userId: booking.userId,
+          organisationId: booking.organisationId,
+          totalAmount,
+          paidAmount,
+          remainingAmount,
+          updatedBy: user._id,
+        },
+        { new: true, upsert: true } // update if exists, create if not
+      );
     }
 
-    // If booking has hotelBooking
-    if (booking.bookingType?.hotelBooking) {
-      totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
-      paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
-      remainingAmount += booking.bookingType.hotelBooking.remainingAmount || 0;
-    }
-
-    await SalesDataModel.create({
-      bookingId: booking._id,
-      userId: booking.userId,
-      organisationId: booking.organisationId,
-      totalAmount,
-      paidAmount,
-      remainingAmount,
-      updatedBy: user._id,
+    res.json({
+      message: 'Booking updated successfully',
+      booking,
+      salesData, // return sales data along with booking
     });
-
-    res.json({ message: 'Booking updated successfully', booking });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
 };
+
+// export const updateFlightAndHotelBooking = async (req, res) => {
+//   try {
+//     const user = req.user;
+//     const { id } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ msg: 'Invalid booking ID format' });
+//     }
+
+//     let booking = await flightAndHotelBookingModel.findById(id);
+//     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+//     // Access control
+//     if (user.role === 'user') {
+//       if (booking.userId.toString() !== user._id.toString()) {
+//         return res
+//           .status(403)
+//           .json({ msg: 'Not allowed to update this booking' });
+//       }
+//     } else if (user.role === 'admin') {
+//       if (
+//         booking.organisationId.toString() !== user.organisationId.toString()
+//       ) {
+//         return res
+//           .status(403)
+//           .json({ msg: 'Not allowed to update this booking' });
+//       }
+//     }
+
+//     // Flatten request body
+//     const flattenObject = (obj, parentKey = '', res = {}) => {
+//       for (let key in obj) {
+//         const newKey = parentKey ? `${parentKey}.${key}` : key;
+//         if (
+//           typeof obj[key] === 'object' &&
+//           !Array.isArray(obj[key]) &&
+//           obj[key] !== null
+//         ) {
+//           flattenObject(obj[key], newKey, res);
+//         } else {
+//           res[newKey] = obj[key];
+//         }
+//       }
+//       return res;
+//     };
+
+//     const updateFields = flattenObject(req.body);
+
+//     // Apply update
+//     booking = await flightAndHotelBookingModel.findByIdAndUpdate(
+//       id,
+//       { $set: updateFields },
+//       { new: true }
+//     );
+
+//     let totalAmount = 0;
+//     let paidAmount = 0;
+//     let remainingAmount = 0;
+
+//     // If booking has flightBooking
+//     if (booking.bookingType?.flightBooking) {
+//       totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
+//       paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
+//       remainingAmount += booking.bookingType.flightBooking.remainingAmount || 0;
+//     }
+
+//     // If booking has hotelBooking
+//     if (booking.bookingType?.hotelBooking) {
+//       totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
+//       paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
+//       remainingAmount += booking.bookingType.hotelBooking.remainingAmount || 0;
+//     }
+
+//     await SalesDataModel.create({
+//       bookingId: booking._id,
+//       userId: booking.userId,
+//       organisationId: booking.organisationId,
+//       totalAmount,
+//       paidAmount,
+//       remainingAmount,
+//       updatedBy: user._id,
+//     });
+
+//     res.json({ message: 'Booking updated successfully', booking });
+//   } catch (err) {
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
 
 export const deleteFlightAndHotelBooking = async (req, res) => {
   try {
