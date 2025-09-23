@@ -81,19 +81,15 @@ export const getBookedFlightAndHotelById = async (req, res) => {
         .status(404)
         .json({ error: 'Flight and Hotels details not found' });
 
-    res
-      .status(200)
-      .json({
-        message: 'Flight and Hotels details fetched successfully',
-        data: flight,
-      });
+    res.status(200).json({
+      message: 'Flight and Hotels details fetched successfully',
+      data: flight,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch flight and Hotels details',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch flight and Hotels details',
+      details: error.message,
+    });
   }
 };
 
@@ -152,24 +148,41 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       { new: true }
     );
 
-    // If financial fields are updated, save into SalesDataCollection
-    if (
-      'totalAmount' in updateFields ||
-      'paidAmount' in updateFields ||
-      'remainingAmount' in updateFields
-    ) {
-      await SalesDataModel.create({
-        bookingId: booking._id,
-        userId: booking.userId,
-        organisationId: booking.organisationId,
-        totalAmount: booking.totalAmount,
-        paidAmount: booking.paidAmount,
-        remainingAmount: booking.remainingAmount,
-        updatedBy: user._id,
-      });
+    // Check if any financial fields (nested or root) are being updated
+    const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
+    const isFinancialUpdate = Object.keys(updateFields).some((key) =>
+      financialFields.some((field) => key.endsWith(field))
+    );
+    console.log('Sales Data Input:', {
+      bookingId: booking._id,
+      userId: booking.userId,
+      organisationId: booking.organisationId,
+      totalAmount: booking.totalAmount,
+      paidAmount: booking.paidAmount,
+      remainingAmount: booking.remainingAmount,
+      updatedBy: user._id,
+    });
 
-      // Delete the booking from flightAndHotelBookingModel
-      await flightAndHotelBookingModel.findByIdAndDelete(id);
+    if (isFinancialUpdate) {
+      try {
+        await SalesDataModel.create({
+          bookingId: booking._id,
+          userId: booking.userId,
+          organisationId: booking.organisationId,
+          totalAmount: booking.totalAmount,
+          paidAmount: booking.paidAmount,
+          remainingAmount: booking.remainingAmount,
+          updatedBy: user._id,
+        });
+
+        // Delete only after saving sales data successfully
+        await flightAndHotelBookingModel.findByIdAndDelete(id);
+      } catch (err) {
+        console.error('SalesData save failed:', err);
+        return res
+          .status(500)
+          .json({ msg: 'Failed to save Sales Data', error: err.message });
+      }
     }
 
     res.json({ message: 'Booking updated successfully', booking });
