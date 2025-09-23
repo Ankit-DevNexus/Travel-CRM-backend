@@ -125,11 +125,12 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     // Flatten request body
     const flattenObject = (obj, parentKey = '', resObj = {}) => {
       for (let key in obj) {
+        if (obj[key] === undefined || obj[key] === null) continue; // skip empty values
         const newKey = parentKey ? `${parentKey}.${key}` : key;
         if (
           typeof obj[key] === 'object' &&
           !Array.isArray(obj[key]) &&
-          obj[key] !== null
+          Object.keys(obj[key]).length > 0
         ) {
           flattenObject(obj[key], newKey, resObj);
         } else {
@@ -148,52 +149,32 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       { new: true }
     );
 
-    let salesData = null;
-
-    // Check if financial fields are being updated
+    // Check if any financial fields exist in the update
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
     const isFinancialUpdate = Object.keys(updateFields).some((key) =>
       financialFields.some((field) => key.endsWith(field))
     );
 
+    let salesData = null;
+
     if (isFinancialUpdate) {
-      // Compute totals from nested schema
-      let totalAmount = 0;
-      let paidAmount = 0;
-      let remainingAmount = 0;
+      // Store the **entire booking record** in SalesDataModel
+      salesData = await SalesDataModel.create({
+        bookingId: booking._id,
+        userId: booking.userId,
+        organisationId: booking.organisationId,
+        bookingData: booking, // store full booking object
+        updatedBy: user._id,
+      });
 
-      if (booking.bookingType?.flightBooking) {
-        totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
-        paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
-        remainingAmount +=
-          booking.bookingType.flightBooking.remainingAmount || 0;
-      }
-
-      if (booking.bookingType?.hotelBooking) {
-        totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
-        paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
-        remainingAmount +=
-          booking.bookingType.hotelBooking.remainingAmount || 0;
-      }
-
-      salesData = await SalesDataModel.findOneAndUpdate(
-        { bookingId: booking._id }, // match existing sales record for this booking
-        {
-          userId: booking.userId,
-          organisationId: booking.organisationId,
-          totalAmount,
-          paidAmount,
-          remainingAmount,
-          updatedBy: user._id,
-        },
-        { new: true, upsert: true } // update if exists, create if not
-      );
+      // Delete booking from FlightAndHotelBookingModel after saving
+      await flightAndHotelBookingModel.findByIdAndDelete(id);
     }
 
     res.json({
       message: 'Booking updated successfully',
-      booking,
-      salesData, // return sales data along with booking
+      booking: isFinancialUpdate ? null : booking, // return null if deleted
+      salesData,
     });
   } catch (err) {
     res.status(500).json({ msg: err.message });
