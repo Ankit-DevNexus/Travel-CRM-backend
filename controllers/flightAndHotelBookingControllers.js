@@ -123,20 +123,21 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     }
 
     // Flatten request body
-    const flattenObject = (obj, parentKey = '', res = {}) => {
+    const flattenObject = (obj, parentKey = '', resObj = {}) => {
       for (let key in obj) {
+        if (obj[key] === undefined || obj[key] === null) continue; // skip empty values
         const newKey = parentKey ? `${parentKey}.${key}` : key;
         if (
           typeof obj[key] === 'object' &&
           !Array.isArray(obj[key]) &&
-          obj[key] !== null
+          Object.keys(obj[key]).length > 0
         ) {
-          flattenObject(obj[key], newKey, res);
+          flattenObject(obj[key], newKey, resObj);
         } else {
-          res[newKey] = obj[key];
+          resObj[newKey] = obj[key];
         }
       }
-      return res;
+      return resObj;
     };
 
     const updateFields = flattenObject(req.body);
@@ -148,48 +149,126 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       { new: true }
     );
 
-    // Check if any financial fields (nested or root) are being updated
+    // Check if any financial fields exist in the update
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
     const isFinancialUpdate = Object.keys(updateFields).some((key) =>
       financialFields.some((field) => key.endsWith(field))
     );
-    console.log('Sales Data Input:', {
-      bookingId: booking._id,
-      userId: booking.userId,
-      organisationId: booking.organisationId,
-      totalAmount: booking.totalAmount,
-      paidAmount: booking.paidAmount,
-      remainingAmount: booking.remainingAmount,
-      updatedBy: user._id,
-    });
+
+    let salesData = null;
 
     if (isFinancialUpdate) {
-      try {
-        await SalesDataModel.create({
-          bookingId: booking._id,
-          userId: booking.userId,
-          organisationId: booking.organisationId,
-          totalAmount: booking.totalAmount,
-          paidAmount: booking.paidAmount,
-          remainingAmount: booking.remainingAmount,
-          updatedBy: user._id,
-        });
+      // Store the **entire booking record** in SalesDataModel
+      salesData = await SalesDataModel.create({
+        bookingId: booking._id,
+        userId: booking.userId,
+        organisationId: booking.organisationId,
+        bookingData: booking, // store full booking object
+        updatedBy: user._id,
+      });
 
-        // Delete only after saving sales data successfully
-        await flightAndHotelBookingModel.findByIdAndDelete(id);
-      } catch (err) {
-        console.error('SalesData save failed:', err);
-        return res
-          .status(500)
-          .json({ msg: 'Failed to save Sales Data', error: err.message });
-      }
+      // Delete booking from FlightAndHotelBookingModel after saving
+      await flightAndHotelBookingModel.findByIdAndDelete(id);
     }
 
-    res.json({ message: 'Booking updated successfully', booking });
+    res.json({
+      message: 'Booking updated successfully',
+      booking: isFinancialUpdate ? null : booking, // return null if deleted
+      salesData,
+    });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
 };
+
+// export const updateFlightAndHotelBooking = async (req, res) => {
+//   try {
+//     const user = req.user;
+//     const { id } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ msg: 'Invalid booking ID format' });
+//     }
+
+//     let booking = await flightAndHotelBookingModel.findById(id);
+//     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+//     // Access control
+//     if (user.role === 'user') {
+//       if (booking.userId.toString() !== user._id.toString()) {
+//         return res
+//           .status(403)
+//           .json({ msg: 'Not allowed to update this booking' });
+//       }
+//     } else if (user.role === 'admin') {
+//       if (
+//         booking.organisationId.toString() !== user.organisationId.toString()
+//       ) {
+//         return res
+//           .status(403)
+//           .json({ msg: 'Not allowed to update this booking' });
+//       }
+//     }
+
+//     // Flatten request body
+//     const flattenObject = (obj, parentKey = '', res = {}) => {
+//       for (let key in obj) {
+//         const newKey = parentKey ? `${parentKey}.${key}` : key;
+//         if (
+//           typeof obj[key] === 'object' &&
+//           !Array.isArray(obj[key]) &&
+//           obj[key] !== null
+//         ) {
+//           flattenObject(obj[key], newKey, res);
+//         } else {
+//           res[newKey] = obj[key];
+//         }
+//       }
+//       return res;
+//     };
+
+//     const updateFields = flattenObject(req.body);
+
+//     // Apply update
+//     booking = await flightAndHotelBookingModel.findByIdAndUpdate(
+//       id,
+//       { $set: updateFields },
+//       { new: true }
+//     );
+
+//     let totalAmount = 0;
+//     let paidAmount = 0;
+//     let remainingAmount = 0;
+
+//     // If booking has flightBooking
+//     if (booking.bookingType?.flightBooking) {
+//       totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
+//       paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
+//       remainingAmount += booking.bookingType.flightBooking.remainingAmount || 0;
+//     }
+
+//     // If booking has hotelBooking
+//     if (booking.bookingType?.hotelBooking) {
+//       totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
+//       paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
+//       remainingAmount += booking.bookingType.hotelBooking.remainingAmount || 0;
+//     }
+
+//     await SalesDataModel.create({
+//       bookingId: booking._id,
+//       userId: booking.userId,
+//       organisationId: booking.organisationId,
+//       totalAmount,
+//       paidAmount,
+//       remainingAmount,
+//       updatedBy: user._id,
+//     });
+
+//     res.json({ message: 'Booking updated successfully', booking });
+//   } catch (err) {
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
 
 export const deleteFlightAndHotelBooking = async (req, res) => {
   try {

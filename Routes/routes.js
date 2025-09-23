@@ -43,6 +43,7 @@ import {
   forgotPassword,
   resetPassword,
 } from '../controllers/ForgetPasswordController.js';
+import { getAllSalesData } from '../controllers/SalesDataController.js';
 
 const router = express.Router();
 
@@ -133,4 +134,6 @@ router.get('/all-markup/:id', Authenticate, getMarkupManagementById);
 router.patch('/update-markup/:id', Authenticate, updateMarkupManagement);
 router.delete('/delete-markup/:id', Authenticate, deleteMarkupManagement);
 
+// get sales data
+router.get('/all-sales-data', Authenticate, getAllSalesData);
 export default router;
