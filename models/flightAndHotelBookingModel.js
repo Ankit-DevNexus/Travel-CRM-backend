@@ -70,6 +70,32 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: 'null',
   },
+
+  feedbackSent: {
+    type: Boolean,
+    default: false,
+  },
+  feedbackSentAt: {
+    type: Date,
+  },
+  feedbackReceived: {
+    type: Boolean,
+    default: false,
+  },
+  feedbackReceivedAt: {
+    type: Date,
+  },
+  // Optional: Store feedback data if you want to capture ratings/comments
+  feedbackData: {
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+    },
+    comments: String,
+    suggestions: String,
+    submittedAt: Date,
+  },
 });
 
 const flightAndHotelBookingModel = mongoose.model(

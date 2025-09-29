@@ -125,39 +125,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// // Update User
-// export const updateUser = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     // Get allowed schema keys
-//     const allowedUpdates = Object.keys(userModel.schema.paths);
-
-//     // Filter req.body to only include valid schema fields
-//     const updates = {};
-//     for (const key of Object.keys(req.body)) {
-//       if (allowedUpdates.includes(key)) {
-//         updates[key] = req.body[key];
-//       }
-//     }
-
-//     const updatedUser = await userModel.findByIdAndUpdate(
-//       id,
-//       { $set: updates }, // only update provided fields
-//       { new: true } // return updated document
-//     );
-
-//     if (!updatedUser) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     res.json(updatedUser);
-//   } catch (err) {
-//     console.error("Error updating user:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -215,3 +182,36 @@ export const deleteUser = async (req, res) => {
       .json({ message: 'Error deleting user', error: error.message });
   }
 };
+
+// // Update User
+// export const updateUser = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     // Get allowed schema keys
+//     const allowedUpdates = Object.keys(userModel.schema.paths);
+
+//     // Filter req.body to only include valid schema fields
+//     const updates = {};
+//     for (const key of Object.keys(req.body)) {
+//       if (allowedUpdates.includes(key)) {
+//         updates[key] = req.body[key];
+//       }
+//     }
+
+//     const updatedUser = await userModel.findByIdAndUpdate(
+//       id,
+//       { $set: updates }, // only update provided fields
+//       { new: true } // return updated document
+//     );
+
+//     if (!updatedUser) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     res.json(updatedUser);
+//   } catch (err) {
+//     console.error("Error updating user:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
