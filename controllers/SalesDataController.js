@@ -11,7 +11,10 @@ export const getAllSalesData = async (req, res) => {
     const totalSales = await SalesDataModel.countDocuments();
 
     // Fetch paginated data
-    const sales = await SalesDataModel.find().skip(skip).limit(limit).lean();
+    const salesData = await SalesDataModel.find()
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     return res.status(200).json({
       success: true,
@@ -19,7 +22,7 @@ export const getAllSalesData = async (req, res) => {
       totalSales,
       page,
       totalPages: Math.ceil(totalSales / limit),
-      data: sales,
+      salesData,
     });
   } catch (error) {
     console.error('Error fetching sales data:', error);

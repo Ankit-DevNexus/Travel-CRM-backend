@@ -145,8 +145,8 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     // Apply update
     booking = await flightAndHotelBookingModel.findByIdAndUpdate(
       id,
-      { $set: updateFields },
-      { new: true }
+      { $set: updateFields }, // Only update the provided fields
+      { new: true } // Return the updated document
     );
 
     // Check if any financial fields exist in the update
@@ -158,12 +158,12 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     let salesData = null;
 
     if (isFinancialUpdate) {
-      // Store the **entire booking record** in SalesDataModel
+      // Store the 'entire booking record' in SalesDataModel
       salesData = await SalesDataModel.create({
-        bookingId: booking._id,
-        userId: booking.userId,
-        organisationId: booking.organisationId,
-        bookingData: booking, // store full booking object
+        // bookingId: booking._id,
+        // userId: booking.userId,
+        // organisationId: booking.organisationId,
+        booking, // store full booking object
         updatedBy: user._id,
       });
 
@@ -173,10 +173,53 @@ export const updateFlightAndHotelBooking = async (req, res) => {
 
     res.json({
       message: 'Booking updated successfully',
-      booking: isFinancialUpdate ? null : booking, // return null if deleted
+      deletedbooking: isFinancialUpdate ? null : booking, // return null if deleted
       salesData,
     });
   } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
+};
+
+export const deleteFlightAndHotelBooking = async (req, res) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ msg: 'Invalid booking ID format' });
+    }
+
+    // Find booking
+    const booking = await flightAndHotelBookingModel.findById(id);
+    if (!booking) {
+      return res.status(404).json({ msg: 'Booking not found' });
+    }
+
+    // Access control
+    if (user.role === 'user') {
+      if (booking.userId.toString() !== user._id.toString()) {
+        return res
+          .status(403)
+          .json({ msg: 'Not allowed to delete this booking' });
+      }
+    } else if (user.role === 'admin') {
+      if (
+        booking.organisationId.toString() !== user.organisationId.toString()
+      ) {
+        return res
+          .status(403)
+          .json({ msg: 'Not allowed to delete this booking' });
+      }
+    }
+
+    // Delete booking
+    await booking.deleteOne();
+
+    res.json({ message: 'Booking deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting booking:', err);
     res.status(500).json({ msg: err.message });
   }
 };
@@ -269,46 +312,3 @@ export const updateFlightAndHotelBooking = async (req, res) => {
 //     res.status(500).json({ msg: err.message });
 //   }
 // };
-
-export const deleteFlightAndHotelBooking = async (req, res) => {
-  try {
-    const user = req.user;
-    const { id } = req.params;
-
-    // Validate ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ msg: 'Invalid booking ID format' });
-    }
-
-    // Find booking
-    const booking = await flightAndHotelBookingModel.findById(id);
-    if (!booking) {
-      return res.status(404).json({ msg: 'Booking not found' });
-    }
-
-    // Access control
-    if (user.role === 'user') {
-      if (booking.userId.toString() !== user._id.toString()) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
-      }
-    } else if (user.role === 'admin') {
-      if (
-        booking.organisationId.toString() !== user.organisationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
-      }
-    }
-
-    // Delete booking
-    await booking.deleteOne();
-
-    res.json({ message: 'Booking deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting booking:', err);
-    res.status(500).json({ msg: err.message });
-  }
-};
