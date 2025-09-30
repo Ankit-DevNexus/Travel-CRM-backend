@@ -1,4 +1,7 @@
-// controllers/feedbackController.js
+//controllers/feedbackController.js
+import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js';
+import { checkAndSendFeedbackEmails } from '../services/feedbackService.js';
+
 export const triggerFeedbackEmails = async (req, res) => {
   try {
     await checkAndSendFeedbackEmails();
@@ -17,7 +20,8 @@ export const triggerFeedbackEmails = async (req, res) => {
 // controllers/feedbackController.js
 export const submitFeedback = async (req, res) => {
   try {
-    const { bookingId, rating, comments, suggestions } = req.body;
+    const { bookingId } = req.params;
+    const { rating, comments, suggestions } = req.body;
 
     // Update booking with feedback
     await flightAndHotelBookingModel.findOneAndUpdate(
@@ -31,7 +35,7 @@ export const submitFeedback = async (req, res) => {
           suggestions,
           submittedAt: new Date(),
         },
-      }
+      },
     );
 
     res.json({
