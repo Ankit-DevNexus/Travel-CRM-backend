@@ -9,6 +9,7 @@ import { getDashboardDB } from './config/ConnectMongoDB.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { scheduleFeedbackEmails } from './services/feedbackService.js';
+import { verifyEmailConnection } from './services/emailService.js';
 
 const PORT = process.env.PORT || 3003;
 const uri = process.env.MONGO_URL;
@@ -42,9 +43,11 @@ app.get('/', (req, res) => {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Start the scheduler when your app starts
+// Start the scheduled job when server starts
 scheduleFeedbackEmails();
-console.log('Feedback email scheduler started...');
+
+// Verify email configuration
+verifyEmailConnection();
 
 app.listen(PORT, () => {
   console.log(`Server is listening on http://localhost:${PORT}`);

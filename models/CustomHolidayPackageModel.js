@@ -8,10 +8,6 @@ const querySourceSchema = new mongoose.Schema(
     destination: String,
     startDate: Date,
     nights: Number,
-    persons: {
-      adults: Number,
-      children: [Number], // array for child ages
-    },
     guestDetails: {
       name: String,
       phone: String,
@@ -19,7 +15,7 @@ const querySourceSchema = new mongoose.Schema(
     },
     comments: String,
   },
-  { _id: false }
+  { _id: false },
 );
 
 const hotelBookingSchema = new mongoose.Schema(
@@ -44,7 +40,7 @@ const hotelBookingSchema = new mongoose.Schema(
     ],
     inclusions: [String], // Wi-Fi, Swimming Pool etc.
   },
-  { _id: false }
+  { _id: false },
 );
 
 const transportSchema = new mongoose.Schema(
@@ -76,7 +72,7 @@ const transportSchema = new mongoose.Schema(
       },
     ],
   },
-  { _id: false }
+  { _id: false },
 );
 
 const flightBookingSchema = new mongoose.Schema(
@@ -107,7 +103,7 @@ const flightBookingSchema = new mongoose.Schema(
       },
     ],
   },
-  { _id: false }
+  { _id: false },
 );
 
 const bookingSchema = new mongoose.Schema(
@@ -145,11 +141,8 @@ const bookingSchema = new mongoose.Schema(
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-const HolidayPackageBookingModel = mongoose.model(
-  'HolidayPackageBookingCollection',
-  bookingSchema
-);
+const HolidayPackageBookingModel = mongoose.model('HolidayPackageBookingCollection', bookingSchema);
 export default HolidayPackageBookingModel;

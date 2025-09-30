@@ -1,11 +1,5 @@
 import express from 'express';
-import {
-  deleteUser,
-  getAllUsers,
-  login,
-  signup,
-  updateUser,
-} from '../controllers/userControllers.js';
+import { deleteUser, getAllUsers, login, signup, updateUser } from '../controllers/userControllers.js';
 import {
   createFlightAndHotelBooking,
   deleteFlightAndHotelBooking,
@@ -14,10 +8,7 @@ import {
   updateFlightAndHotelBooking,
 } from '../controllers/flightAndHotelBookingControllers.js';
 import { Authenticate } from '../middleware/authMiddleware.js';
-import {
-  getAllOrganisations,
-  RegisterOrganisation,
-} from '../controllers/OrganisationController.js';
+import { getAllOrganisations, RegisterOrganisation } from '../controllers/OrganisationController.js';
 import {
   createHolidayPackageBooking,
   deleteHolidayPackageBooking,
@@ -25,13 +16,7 @@ import {
   getBookedHolidayPackageById,
   updateHolidayPackage,
 } from '../controllers/CustomHolidayPackageController.js';
-import {
-  createCoupon,
-  deleteCoupon,
-  getAllCoupon,
-  getCouponById,
-  updateCoupon,
-} from '../controllers/CouponController.js';
+import { createCoupon, deleteCoupon, getAllCoupon, getCouponById, updateCoupon } from '../controllers/CouponController.js';
 import {
   CreateMarkupManagement,
   deleteMarkupManagement,
@@ -39,11 +24,9 @@ import {
   getMarkupManagementById,
   updateMarkupManagement,
 } from '../controllers/MarkupManagementController.js';
-import {
-  forgotPassword,
-  resetPassword,
-} from '../controllers/ForgetPasswordController.js';
+import { forgotPassword, resetPassword } from '../controllers/ForgetPasswordController.js';
 import { getAllSalesData } from '../controllers/SalesDataController.js';
+import { submitFeedback, triggerFeedbackEmails } from '../controllers/feedbackController.js';
 
 const router = express.Router();
 
@@ -66,58 +49,18 @@ router.patch('/get-all-users/:id', Authenticate, updateUser);
 router.delete('/get-all-users/:id', Authenticate, deleteUser);
 
 //Flight and Hotel Booking
-router.post(
-  '/booked-flight-hotel/create',
-  Authenticate,
-  createFlightAndHotelBooking
-);
-router.get(
-  '/all-booked-flight-hotel',
-  Authenticate,
-  getAllFlightAndHotelBooking
-);
-router.get(
-  '/all-booked-flight-hotel/:id',
-  Authenticate,
-  getBookedFlightAndHotelById
-);
-router.patch(
-  '/all-booked-flight-hotel/update/:id',
-  Authenticate,
-  updateFlightAndHotelBooking
-);
-router.delete(
-  '/all-booked-flight-hotel/delete/:id',
-  Authenticate,
-  deleteFlightAndHotelBooking
-);
+router.post('/booked-flight-hotel/create', Authenticate, createFlightAndHotelBooking);
+router.get('/all-booked-flight-hotel', Authenticate, getAllFlightAndHotelBooking);
+router.get('/all-booked-flight-hotel/:id', Authenticate, getBookedFlightAndHotelById);
+router.patch('/all-booked-flight-hotel/update/:id', Authenticate, updateFlightAndHotelBooking);
+router.delete('/all-booked-flight-hotel/delete/:id', Authenticate, deleteFlightAndHotelBooking);
 
 // Custom Holiday Package
-router.post(
-  '/book-holiday-package/create',
-  Authenticate,
-  createHolidayPackageBooking
-);
-router.get(
-  '/all-booked-holiday-package',
-  Authenticate,
-  getAllHolidayPackageBooking
-);
-router.get(
-  '/all-booked-holiday-package/:id',
-  Authenticate,
-  getBookedHolidayPackageById
-);
-router.patch(
-  '/all-booked-holiday-package/update/:id',
-  Authenticate,
-  updateHolidayPackage
-);
-router.delete(
-  '/all-booked-holiday-package/delete/:id',
-  Authenticate,
-  deleteHolidayPackageBooking
-);
+router.post('/book-holiday-package/create', Authenticate, createHolidayPackageBooking);
+router.get('/all-booked-holiday-package', Authenticate, getAllHolidayPackageBooking);
+router.get('/all-booked-holiday-package/:id', Authenticate, getBookedHolidayPackageById);
+router.patch('/all-booked-holiday-package/update/:id', Authenticate, updateHolidayPackage);
+router.delete('/all-booked-holiday-package/delete/:id', Authenticate, deleteHolidayPackageBooking);
 
 // coupon
 router.post('/coupon/create', Authenticate, createCoupon);
@@ -136,4 +79,8 @@ router.delete('/delete-markup/:id', Authenticate, deleteMarkupManagement);
 
 // get sales data
 router.get('/all-sales-data', Authenticate, getAllSalesData);
+
+router.post('/trigger-feedback-emails', triggerFeedbackEmails);
+router.patch('/submit-feedback', submitFeedback);
+
 export default router;
