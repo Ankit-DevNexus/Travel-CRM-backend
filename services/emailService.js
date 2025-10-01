@@ -11,9 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendFeedbackEmail = async (booking) => {
-  const clientEmail =
-    booking.bookingType?.flightBooking?.passengerDetails?.email ||
-    booking.bookingType?.hotelBooking?.guestDetails?.email;
+  const clientEmail = booking.bookingType?.flightBooking?.passengerDetails?.email || booking.bookingType?.hotelBooking?.guestDetails?.email;
 
   if (!clientEmail) {
     throw new Error('No email found for client');
@@ -30,11 +28,7 @@ export const sendFeedbackEmail = async (booking) => {
     from: process.env.EMAIL_USER,
     to: clientEmail,
     subject: 'How was your trip? - Share Your Feedback',
-    html: generateFeedbackEmailTemplate(
-      clientName,
-      tripDetails,
-      booking.uniqueBookingId
-    ),
+    html: generateFeedbackEmailTemplate(clientName, tripDetails, booking.uniqueBookingId),
   };
 
   try {
@@ -102,15 +96,11 @@ const generateFeedbackEmailTemplate = (clientName, tripDetails, bookingId) => {
         </div>
         <div class="content">
           <h2>Dear ${clientName},</h2>
-          <p>We hope you had a wonderful trip to <strong>${
-            tripDetails.destination
-          }</strong>!</p>
+          <p>We hope you had a wonderful trip to <strong>${tripDetails.destination}</strong>!</p>
           <p>Your feedback is incredibly valuable to us. It helps us improve our services and assist future travelers in making their journeys memorable.</p>
           
           <div style="text-align: center;">
-            <a href="${
-              process.env.FEEDBACK_URL || 'https://yourwebsite.com/feedback'
-            }?bookingId=${bookingId}" class="button">
+            <a href="${process.env.FEEDBACK_URL || 'https://yourwebsite.com/feedback'}?bookingId=${bookingId}" class="button">
               Share Your Feedback
             </a>
           </div>
@@ -120,11 +110,8 @@ const generateFeedbackEmailTemplate = (clientName, tripDetails, bookingId) => {
           ${
             tripDetails.travelDates.departure
               ? `
-            <p><strong>Travel Dates:</strong> ${
-              tripDetails.travelDates.departure
-            } to ${
-                  tripDetails.travelDates.return ||
-                  tripDetails.travelDates.checkOut
+            <p><strong>Travel Dates:</strong> ${tripDetails.travelDates.departure} to ${
+                  tripDetails.travelDates.return || tripDetails.travelDates.checkOut
                 }</p>
           `
               : ''
@@ -149,6 +136,9 @@ export const verifyEmailConnection = async () => {
   try {
     await transporter.verify();
     console.log('Email server connection verified');
+    const today = new Date();
+    console.log('Current date:', today.toLocaleString());
+
     return true;
   } catch (error) {
     console.error('Email server connection failed:', error);

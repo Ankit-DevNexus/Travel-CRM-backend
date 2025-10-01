@@ -6,7 +6,7 @@ import { sendFeedbackEmail } from './emailService.js'; // Import from emailServi
 // Schedule job to run daily at 9 AM
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily at 9 AM
-  cron.schedule('0 9 * * *', async () => {
+  cron.schedule('30 11 * * *', async () => {
     try {
       console.log('Scheduled: Checking for completed trips...');
       await checkAndSendFeedbackEmails();
