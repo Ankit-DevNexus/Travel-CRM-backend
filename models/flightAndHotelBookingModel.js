@@ -19,7 +19,7 @@ const flightBookingSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { _id: false, timestamps: true }
+  { _id: false, timestamps: true },
 );
 
 const hotelBookingSchema = new mongoose.Schema(
@@ -40,7 +40,7 @@ const hotelBookingSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { _id: false, timestamps: true }
+  { _id: false, timestamps: true },
 );
 
 const bookingSchema = new mongoose.Schema({
@@ -58,10 +58,18 @@ const bookingSchema = new mongoose.Schema({
   },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
+  // Indicates type of booking
+  bookingCategory: {
+    type: String,
+    enum: ['flight', 'hotel', 'HotelAndFlight'],
+    default: null,
+  },
+
   bookingType: {
     flightBooking: flightBookingSchema,
     hotelBooking: hotelBookingSchema,
   },
+
   AssignedTo: {
     type: String,
     default: 'null',
@@ -71,6 +79,7 @@ const bookingSchema = new mongoose.Schema({
     default: 'null',
   },
 
+  // ADD FEEDBACK FIELDS HERE - in the main booking schema
   feedbackSent: {
     type: Boolean,
     default: false,
@@ -98,8 +107,5 @@ const bookingSchema = new mongoose.Schema({
   },
 });
 
-const flightAndHotelBookingModel = mongoose.model(
-  'FlightAndHotelBookingCollection',
-  bookingSchema
-);
+const flightAndHotelBookingModel = mongoose.model('FlightAndHotelBookingCollection', bookingSchema);
 export default flightAndHotelBookingModel;
