@@ -84,10 +84,7 @@ export const getAllHolidayPackageBooking = async (req, res) => {
     // fetch data
     // promise.all([]) run queries in parallel
     const [Holiday, totalLeads] = await Promise.all([
-      HolidayPackageBookingModel.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
+      HolidayPackageBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }), // → fetches only the records for the current page, sorted by newest first.
       HolidayPackageBookingModel.countDocuments(query), //→ gets the total number of records (needed to calculate total pages).
     ]);
 
@@ -112,10 +109,7 @@ export const getBookedHolidayPackageById = async (req, res) => {
     }
 
     const holiday = await HolidayPackageBookingModel.findById(id);
-    if (!holiday)
-      return res
-        .status(404)
-        .json({ error: 'Holiday package details not found' });
+    if (!holiday) return res.status(404).json({ error: 'Holiday package details not found' });
 
     res.status(200).json({
       message: 'Holiday package details fetched successfully',
@@ -143,17 +137,11 @@ export const updateHolidayPackage = async (req, res) => {
     // Access control
     if (user.role === 'user') {
       if (booking.userId.toString() !== user._id.toString()) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to update this booking' });
+        return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     } else if (user.role === 'admin') {
-      if (
-        booking.organisationId.toString() !== user.organisationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to update this booking' });
+      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+        return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     }
 
@@ -161,11 +149,7 @@ export const updateHolidayPackage = async (req, res) => {
     const flattenObject = (obj, parentKey = '', res = {}) => {
       for (let key in obj) {
         const newKey = parentKey ? `${parentKey}.${key}` : key;
-        if (
-          typeof obj[key] === 'object' &&
-          !Array.isArray(obj[key]) &&
-          obj[key] !== null
-        ) {
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && obj[key] !== null) {
           flattenObject(obj[key], newKey, res);
         } else {
           res[newKey] = obj[key];
@@ -177,23 +161,17 @@ export const updateHolidayPackage = async (req, res) => {
     const updateFields = flattenObject(req.body);
 
     // Apply update using $set
-    booking = await HolidayPackageBookingModel.findByIdAndUpdate(
-      id,
-      { $set: updateFields },
-      { new: true }
-    );
+    booking = await HolidayPackageBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
 
     // Check if any financial fields exist in the update
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
-    const isFinancialUpdate = Object.keys(updateFields).some((key) =>
-      financialFields.some((field) => key.endsWith(field))
-    );
+    const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
 
     let salesDataHolidayPackage = null;
 
     if (isFinancialUpdate) {
       // Store the 'entire booking record' in SalesDataModel
-      salesData = await SalesDataModel.create({
+      salesDataHolidayPackage = await SalesDataModel.create({
         booking, // store full booking object
         updatedBy: user._id,
       });
@@ -232,17 +210,11 @@ export const deleteHolidayPackageBooking = async (req, res) => {
     // Access control
     if (user.role === 'user') {
       if (booking.userId.toString() !== user._id.toString()) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
+        return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     } else if (user.role === 'admin') {
-      if (
-        booking.organisationId.toString() !== user.organisationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
+      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+        return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     }
 
