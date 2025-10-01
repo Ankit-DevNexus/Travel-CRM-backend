@@ -2,10 +2,11 @@
 import cron from 'node-cron';
 import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js';
 import { sendFeedbackEmail } from './emailService.js'; // Import from emailService
+import SalesDataModel from '../models/SalesDataModel.js';
 
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily
-  cron.schedule('30 17 * * *', async () => {
+  cron.schedule('45 17 * * *', async () => {
     try {
       console.log('Scheduled: Checking for completed trips...');
       await checkAndSendFeedbackEmails();
@@ -24,17 +25,17 @@ export const checkAndSendFeedbackEmails = async () => {
   console.log("Today's date:", todayString);
 
   try {
-    const completedBookings = await flightAndHotelBookingModel.find({
+    const completedBookings = await SalesDataModel.find({
       $and: [
         {
           $or: [
             {
-              'bookingType.flightBooking.flightDetails.returnDate': {
+              'booking.bookingType.flightBooking.flightDetails.returnDate': {
                 $lt: todayString,
               },
             },
             {
-              'bookingType.hotelBooking.hotelDetails.checkOutDate': {
+              'booking.bookingType.hotelBooking.hotelDetails.checkOutDate': {
                 $lt: todayString,
               },
             },
@@ -63,10 +64,10 @@ export const checkAndSendFeedbackEmails = async () => {
 
     for (const booking of completedBookings) {
       try {
-        console.log(`\n Attempting to send email for: ${booking.uniqueBookingId}`);
+        console.log(`\nAttempting to send email for: ${booking.uniqueBookingId}`);
         await sendFeedbackEmail(booking);
 
-        await flightAndHotelBookingModel.findByIdAndUpdate(booking._id, {
+        await SalesDataModel.findByIdAndUpdate(booking._id, {
           feedbackSent: true,
           feedbackSentAt: new Date(),
         });
