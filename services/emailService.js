@@ -136,8 +136,11 @@ export const verifyEmailConnection = async () => {
   try {
     await transporter.verify();
     console.log('Email server connection verified');
+    // const today = new Date();
+    // console.log('Current date:', today.toLocaleString());
+
     const today = new Date();
-    console.log('Current date:', today.toLocaleString());
+    console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
 
     return true;
   } catch (error) {
