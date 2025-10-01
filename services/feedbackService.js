@@ -3,10 +3,9 @@ import cron from 'node-cron';
 import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js';
 import { sendFeedbackEmail } from './emailService.js'; // Import from emailService
 
-// Schedule job to run daily at 9 AM
 export const scheduleFeedbackEmails = () => {
-  // Schedule job to run daily at 9 AM
-  cron.schedule('30 11 * * *', async () => {
+  // Schedule job to run daily
+  cron.schedule('30 17 * * *', async () => {
     try {
       console.log('Scheduled: Checking for completed trips...');
       await checkAndSendFeedbackEmails();

@@ -3,19 +3,49 @@ import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js'
 import { v4 as uuidv4 } from 'uuid';
 import SalesDataModel from '../models/SalesDataModel.js';
 
+// export const createFlightAndHotelBooking = async (req, res) => {
+//   try {
+//     const user = req.user;
+
+//     // Unique booking ID using UUID
+//     const uniqueBookingId = 'USR-' + uuidv4().split('-')[0].toUpperCase();
+
+//     const bookingData = await flightAndHotelBookingModel.create({
+//       ...req.body,
+//       uniqueBookingId,
+//       organisationId: user.organisationId,
+//       adminId: user.adminId,
+//       userId: user._id,
+//     });
+
+//     res.json({ message: 'Booking created successfully', bookingData });
+//   } catch (err) {
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
+
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
     const user = req.user;
+    const { flightBooking, hotelBooking } = req.body.bookingType || {};
 
-    // Unique booking ID using UUID
+    let bookingCategory = null;
+    if (flightBooking && !hotelBooking) bookingCategory = 'flight';
+    else if (!flightBooking && hotelBooking) bookingCategory = 'hotel';
+    else if (flightBooking && hotelBooking) bookingCategory = 'HotelAndFlight';
+
     const uniqueBookingId = 'USR-' + uuidv4().split('-')[0].toUpperCase();
 
     const bookingData = await flightAndHotelBookingModel.create({
-      ...req.body,
       uniqueBookingId,
       organisationId: user.organisationId,
       adminId: user.adminId,
       userId: user._id,
+      bookingType: {
+        flightBooking: flightBooking || undefined,
+        hotelBooking: hotelBooking || undefined,
+      },
+      bookingCategory,
     });
 
     res.json({ message: 'Booking created successfully', bookingData });
@@ -26,7 +56,6 @@ export const createFlightAndHotelBooking = async (req, res) => {
 
 export const getAllFlightAndHotelBooking = async (req, res) => {
   try {
-    // Pagination setup
     const currentPage = parseInt(req.query.currentPage) || 1;
     const limit = parseInt(req.query.limit) || 7;
     const skip = (currentPage - 1) * limit;
@@ -43,11 +72,7 @@ export const getAllFlightAndHotelBooking = async (req, res) => {
 
     // Fetch data in parallel
     const [flights, totalLeads] = await Promise.all([
-      flightAndHotelBookingModel
-        .find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 }),
+      flightAndHotelBookingModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
       flightAndHotelBookingModel.countDocuments(query),
     ]);
 
@@ -76,10 +101,7 @@ export const getBookedFlightAndHotelById = async (req, res) => {
     }
 
     const flight = await flightAndHotelBookingModel.findById(id);
-    if (!flight)
-      return res
-        .status(404)
-        .json({ error: 'Flight and Hotels details not found' });
+    if (!flight) return res.status(404).json({ error: 'Flight and Hotels details not found' });
 
     res.status(200).json({
       message: 'Flight and Hotels details fetched successfully',
@@ -108,17 +130,11 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     // Access control
     if (user.role === 'user') {
       if (booking.userId.toString() !== user._id.toString()) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to update this booking' });
+        return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     } else if (user.role === 'admin') {
-      if (
-        booking.organisationId.toString() !== user.organisationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to update this booking' });
+      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+        return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     }
 
@@ -127,11 +143,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       for (let key in obj) {
         if (obj[key] === undefined || obj[key] === null) continue; // skip empty values
         const newKey = parentKey ? `${parentKey}.${key}` : key;
-        if (
-          typeof obj[key] === 'object' &&
-          !Array.isArray(obj[key]) &&
-          Object.keys(obj[key]).length > 0
-        ) {
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && Object.keys(obj[key]).length > 0) {
           flattenObject(obj[key], newKey, resObj);
         } else {
           resObj[newKey] = obj[key];
@@ -146,23 +158,18 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     booking = await flightAndHotelBookingModel.findByIdAndUpdate(
       id,
       { $set: updateFields }, // Only update the provided fields
-      { new: true } // Return the updated document
+      { new: true }, // Return the updated document
     );
 
     // Check if any financial fields exist in the update
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
-    const isFinancialUpdate = Object.keys(updateFields).some((key) =>
-      financialFields.some((field) => key.endsWith(field))
-    );
+    const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
 
     let salesData = null;
 
     if (isFinancialUpdate) {
       // Store the 'entire booking record' in SalesDataModel
       salesData = await SalesDataModel.create({
-        // bookingId: booking._id,
-        // userId: booking.userId,
-        // organisationId: booking.organisationId,
         booking, // store full booking object
         updatedBy: user._id,
       });
@@ -200,17 +207,11 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
     // Access control
     if (user.role === 'user') {
       if (booking.userId.toString() !== user._id.toString()) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
+        return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     } else if (user.role === 'admin') {
-      if (
-        booking.organisationId.toString() !== user.organisationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ msg: 'Not allowed to delete this booking' });
+      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+        return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     }
 
