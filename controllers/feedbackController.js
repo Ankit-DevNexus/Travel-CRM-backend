@@ -22,6 +22,9 @@ export const submitFeedback = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { rating, comments, suggestions } = req.body;
+    console.log('rating', rating);
+    console.log('comments', comments);
+    console.log('suggestions', suggestions);
 
     // Update booking with feedback
     await flightAndHotelBookingModel.findOneAndUpdate(

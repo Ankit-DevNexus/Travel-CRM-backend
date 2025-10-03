@@ -17,7 +17,7 @@ export const getAllSalesData = async (req, res) => {
       success: true,
       message: 'Fetched sales data successfully',
       totalSales,
-      page,
+      currentPage: page,
       totalPages: Math.ceil(totalSales / limit),
       salesData,
     });

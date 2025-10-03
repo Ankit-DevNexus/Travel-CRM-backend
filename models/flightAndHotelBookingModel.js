@@ -77,7 +77,6 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: 'null',
   },
-
   feedbackSent: {
     type: Boolean,
     default: false,

@@ -38,13 +38,13 @@ export const createFlightAndHotelBooking = async (req, res) => {
 
     const bookingData = await flightAndHotelBookingModel.create({
       uniqueBookingId,
-      organisationId: user.organisationId,
-      adminId: user.adminId,
-      userId: user._id,
       bookingType: {
         flightBooking: flightBooking || undefined,
         hotelBooking: hotelBooking || undefined,
       },
+      organisationId: user.organisationId,
+      adminId: user.adminId,
+      userId: user._id,
       bookingCategory,
     });
 
