@@ -5,14 +5,21 @@ import SalesDataModel from '../models/SalesDataModel.js';
 
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily
-  cron.schedule('10 9 * * *', async () => {
-    try {
-      console.log('Scheduled: Checking for completed trips...');
-      await checkAndSendFeedbackEmails();
-    } catch (error) {
-      console.error('Error in feedback email scheduler:', error);
-    }
-  });
+  cron.schedule(
+    '25 10 * * *',
+    async () => {
+      try {
+        console.log('Scheduled: Checking for completed trips...');
+        await checkAndSendFeedbackEmails();
+      } catch (error) {
+        console.error('Error in feedback email scheduler:', error);
+      }
+    },
+    {
+      scheduled: true,
+      timezone: 'Asia/Kolkata',
+    },
+  );
 };
 
 export const checkAndSendFeedbackEmails = async () => {
