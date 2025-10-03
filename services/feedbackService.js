@@ -6,7 +6,7 @@ import SalesDataModel from '../models/SalesDataModel.js';
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily
   cron.schedule(
-    '30 11 * * *',
+    '30 2 * * *',
     async () => {
       try {
         console.log('Scheduled: Checking for completed trips...');
@@ -87,10 +87,16 @@ export const checkAndSendFeedbackEmails = async () => {
 
         await sendFeedbackEmail(booking);
 
-        await SalesDataModel.findByIdAndUpdate(booking._id, {
-          feedbackSent: true,
-          feedbackSentAt: new Date(),
-        });
+        await SalesDataModel.findByIdAndUpdate(
+          booking._id,
+          {
+            $set: {
+              'booking.feedbackSent': true,
+              'booking.feedbackSentAt': new Date(),
+            },
+          },
+          { new: true }, // return updated document
+        );
 
         console.log(`Successfully sent and marked feedback for: ${uniqueBookingId}`);
         sentCount++;
