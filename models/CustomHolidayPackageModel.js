@@ -109,6 +109,11 @@ const flightBookingSchema = new mongoose.Schema(
 const bookingSchema = new mongoose.Schema(
   {
     uniqueBookingId: { type: String, unique: true, required: true }, // important
+    querySource: querySourceSchema,
+    hotelBooking: hotelBookingSchema,
+    transportAndActivities: [transportSchema],
+    flightBooking: flightBookingSchema,
+
     organisationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
@@ -124,11 +129,10 @@ const bookingSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-
-    querySource: querySourceSchema,
-    hotelBooking: hotelBookingSchema,
-    transportAndActivities: [transportSchema],
-    flightBooking: flightBookingSchema,
+    bookingCategory: {
+      type: String,
+      default: 'customPackage',
+    },
 
     Status: {
       type: String,
@@ -137,6 +141,42 @@ const bookingSchema = new mongoose.Schema(
     AssignedTo: {
       type: String,
       default: null,
+    },
+    totalAmount: {
+      type: Number,
+      default: 0,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    remainingAmount: {
+      type: Number,
+      default: 0,
+    },
+    feedbackSent: {
+      type: Boolean,
+      default: false,
+    },
+    feedbackSentAt: {
+      type: Date,
+    },
+    feedbackReceived: {
+      type: Boolean,
+      default: false,
+    },
+    feedbackReceivedAt: {
+      type: Date,
+    },
+    feedbackData: {
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+      comments: String,
+      suggestions: String,
+      submittedAt: Date,
     },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

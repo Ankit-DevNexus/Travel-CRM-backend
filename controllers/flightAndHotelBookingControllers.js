@@ -57,7 +57,7 @@ export const createFlightAndHotelBooking = async (req, res) => {
 export const getAllFlightAndHotelBooking = async (req, res) => {
   try {
     const currentPage = parseInt(req.query.currentPage) || 1;
-    const limit = parseInt(req.query.limit) || 7;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (currentPage - 1) * limit;
 
     let query = {};
