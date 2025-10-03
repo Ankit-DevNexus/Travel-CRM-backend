@@ -28,17 +28,20 @@ export const submitFeedback = async (req, res) => {
 
     // Update booking with feedback
     await SalesDataModel.findOneAndUpdate(
-      { uniqueBookingId: bookingId },
+      { 'booking.uniqueBookingId': bookingId },
       {
-        feedbackReceived: true,
-        feedbackReceivedAt: new Date(),
-        feedbackData: {
-          rating,
-          comments,
-          suggestions,
-          submittedAt: new Date(),
+        $set: {
+          'booking.feedbackReceived': true,
+          'booking.feedbackReceivedAt': new Date(),
+          'booking.feedbackData': {
+            rating,
+            comments,
+            suggestions,
+            submittedAt: new Date(),
+          },
         },
       },
+      { new: true }, // returns updated doc
     );
 
     res.json({
