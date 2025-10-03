@@ -3,18 +3,13 @@ import mongoose from 'mongoose';
 const SalesDataSchema = new mongoose.Schema(
   {
     booking: { type: Object, required: true },
-
-    // totalAmount: { type: Number, required: false },
-    // paidAmount: { type: Number, required: false },
-    // remainingAmount: { type: Number, required: false },
-
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
   },
-  { timestamps: true, strict: false }
+  { timestamps: true, strict: false },
 );
 
 const SalesDataModel = mongoose.model('SalesDataCollection', SalesDataSchema);

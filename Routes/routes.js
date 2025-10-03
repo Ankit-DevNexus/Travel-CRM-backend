@@ -25,7 +25,7 @@ import {
   updateMarkupManagement,
 } from '../controllers/MarkupManagementController.js';
 import { forgotPassword, resetPassword } from '../controllers/ForgetPasswordController.js';
-import { getAllSalesData } from '../controllers/SalesDataController.js';
+import { deleteSalesData, getAllSalesData, getSalesDataById, updateSalesData } from '../controllers/SalesDataController.js';
 import { submitFeedback, triggerFeedbackEmails } from '../controllers/feedbackController.js';
 
 const router = express.Router();
@@ -79,8 +79,12 @@ router.delete('/delete-markup/:id', Authenticate, deleteMarkupManagement);
 
 // get sales data
 router.get('/all-sales-data', Authenticate, getAllSalesData);
+router.get('/sales-data/:id', Authenticate, getSalesDataById);
+router.patch('/sales-data/update/:id', Authenticate, updateSalesData);
+router.delete('/sales-data/delete/:id', Authenticate, deleteSalesData);
 
+// manual feedback send
 router.post('/trigger-feedback-emails', triggerFeedbackEmails);
-router.patch('/submit-feedback', submitFeedback);
+router.patch('/submit-feedback/:bookingId', submitFeedback);
 
 export default router;
