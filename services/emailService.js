@@ -178,7 +178,7 @@ const generateFeedbackEmailTemplate = (clientName, tripDetails, bookingId) => {
           <p>Your feedback is incredibly valuable to us. It helps us improve our services and assist future travelers in making their journeys memorable.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.FEEDBACK_URL || 'https://localhost:5173/feedbackform'}?bookingId=${bookingId}" class="button">
+            <a href="${process.env.FEEDBACK_URL || 'http://localhost:5173/feedbackform'}?bookingId=${bookingId}" class="button">
               Share Your Feedback
             </a>
           </div>
