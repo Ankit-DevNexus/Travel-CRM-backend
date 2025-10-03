@@ -1,5 +1,5 @@
 //controllers/feedbackController.js
-import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js';
+import SalesDataModel from '../models/SalesDataModel.js';
 import { checkAndSendFeedbackEmails } from '../services/feedbackService.js';
 
 export const triggerFeedbackEmails = async (req, res) => {
@@ -27,7 +27,7 @@ export const submitFeedback = async (req, res) => {
     console.log('suggestions', suggestions);
 
     // Update booking with feedback
-    await flightAndHotelBookingModel.findOneAndUpdate(
+    await SalesDataModel.findOneAndUpdate(
       { uniqueBookingId: bookingId },
       {
         feedbackReceived: true,
