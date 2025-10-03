@@ -6,7 +6,7 @@ import SalesDataModel from '../models/SalesDataModel.js';
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily
   cron.schedule(
-    '25 10 * * *',
+    '30 11 * * *',
     async () => {
       try {
         console.log('Scheduled: Checking for completed trips...');
