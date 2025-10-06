@@ -22,9 +22,9 @@ export const submitFeedback = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const { rating, comments, suggestions } = req.body;
-    console.log('rating', rating);
-    console.log('comments', comments);
-    console.log('suggestions', suggestions);
+    // console.log('rating', rating);
+    // console.log('comments', comments);
+    // console.log('suggestions', suggestions);
 
     // Update booking with feedback
     await SalesDataModel.findOneAndUpdate(
@@ -41,7 +41,7 @@ export const submitFeedback = async (req, res) => {
           },
         },
       },
-      { new: true }, // returns updated doc
+      { new: true },
     );
 
     res.json({

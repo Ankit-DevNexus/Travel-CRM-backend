@@ -38,7 +38,7 @@ const hotelBookingSchema = new mongoose.Schema(
         given: Number,
       },
     ],
-    inclusions: [String], // Wi-Fi, Swimming Pool etc.
+    inclusions: [String],
   },
   { _id: false },
 );
@@ -94,7 +94,7 @@ const flightBookingSchema = new mongoose.Schema(
         given: Number,
       },
     ],
-    specialRequests: [String], // Meals, WheelChair, Extra Luggage
+    specialRequests: [String],
     transportServices: [
       {
         name: String,
@@ -108,7 +108,7 @@ const flightBookingSchema = new mongoose.Schema(
 
 const bookingSchema = new mongoose.Schema(
   {
-    uniqueBookingId: { type: String, unique: true, required: true }, // important
+    uniqueBookingId: { type: String, unique: true, required: true },
     querySource: querySourceSchema,
     hotelBooking: hotelBookingSchema,
     transportAndActivities: [transportSchema],
