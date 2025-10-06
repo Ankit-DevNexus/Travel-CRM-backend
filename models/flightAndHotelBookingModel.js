@@ -59,9 +59,8 @@ const bookingSchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
   // Indicates type of booking
   bookingCategory: {
@@ -100,7 +99,6 @@ const bookingSchema = new mongoose.Schema({
     },
     comments: String,
     suggestions: String,
-    submittedAt: Date,
   },
 });
 

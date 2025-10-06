@@ -3,27 +3,6 @@ import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js'
 import { v4 as uuidv4 } from 'uuid';
 import SalesDataModel from '../models/SalesDataModel.js';
 
-// export const createFlightAndHotelBooking = async (req, res) => {
-//   try {
-//     const user = req.user;
-
-//     // Unique booking ID using UUID
-//     const uniqueBookingId = 'USR-' + uuidv4().split('-')[0].toUpperCase();
-
-//     const bookingData = await flightAndHotelBookingModel.create({
-//       ...req.body,
-//       uniqueBookingId,
-//       organisationId: user.organisationId,
-//       adminId: user.adminId,
-//       userId: user._id,
-//     });
-
-//     res.json({ message: 'Booking created successfully', bookingData });
-//   } catch (err) {
-//     res.status(500).json({ msg: err.message });
-//   }
-// };
-
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
     const user = req.user;
@@ -36,16 +15,33 @@ export const createFlightAndHotelBooking = async (req, res) => {
 
     const uniqueBookingId = 'USR-' + uuidv4().split('-')[0].toUpperCase();
 
-    const bookingData = await flightAndHotelBookingModel.create({
+    // booking payload
+    const bookingPayload = {
       uniqueBookingId,
       bookingType: {
         flightBooking: flightBooking || undefined,
         hotelBooking: hotelBooking || undefined,
       },
       organisationId: user.organisationId,
-      adminId: user.adminId,
-      userId: user._id,
       bookingCategory,
+    };
+
+    if (user.role === 'admin') {
+      bookingPayload.adminId = user._id;
+    } else if (user.role === 'user') {
+      bookingPayload.adminId = user.adminId;
+      bookingPayload.userId = user._id;
+    }
+
+    const bookingData = await flightAndHotelBookingModel.create(bookingPayload);
+
+    // Log create action
+    await AuditLog.create({
+      action: 'CREATE',
+      collectionName: 'FlightAndHotelBooking',
+      documentId: bookingData._id,
+      userId: user._id,
+      after: bookingData.toObject(),
     });
 
     res.json({ message: 'Booking created successfully', bookingData });
@@ -224,92 +220,3 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
     res.status(500).json({ msg: err.message });
   }
 };
-
-// export const updateFlightAndHotelBooking = async (req, res) => {
-//   try {
-//     const user = req.user;
-//     const { id } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ msg: 'Invalid booking ID format' });
-//     }
-
-//     let booking = await flightAndHotelBookingModel.findById(id);
-//     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
-
-//     // Access control
-//     if (user.role === 'user') {
-//       if (booking.userId.toString() !== user._id.toString()) {
-//         return res
-//           .status(403)
-//           .json({ msg: 'Not allowed to update this booking' });
-//       }
-//     } else if (user.role === 'admin') {
-//       if (
-//         booking.organisationId.toString() !== user.organisationId.toString()
-//       ) {
-//         return res
-//           .status(403)
-//           .json({ msg: 'Not allowed to update this booking' });
-//       }
-//     }
-
-//     // Flatten request body
-//     const flattenObject = (obj, parentKey = '', res = {}) => {
-//       for (let key in obj) {
-//         const newKey = parentKey ? `${parentKey}.${key}` : key;
-//         if (
-//           typeof obj[key] === 'object' &&
-//           !Array.isArray(obj[key]) &&
-//           obj[key] !== null
-//         ) {
-//           flattenObject(obj[key], newKey, res);
-//         } else {
-//           res[newKey] = obj[key];
-//         }
-//       }
-//       return res;
-//     };
-
-//     const updateFields = flattenObject(req.body);
-
-//     // Apply update
-//     booking = await flightAndHotelBookingModel.findByIdAndUpdate(
-//       id,
-//       { $set: updateFields },
-//       { new: true }
-//     );
-
-//     let totalAmount = 0;
-//     let paidAmount = 0;
-//     let remainingAmount = 0;
-
-//     // If booking has flightBooking
-//     if (booking.bookingType?.flightBooking) {
-//       totalAmount += booking.bookingType.flightBooking.totalAmount || 0;
-//       paidAmount += booking.bookingType.flightBooking.paidAmount || 0;
-//       remainingAmount += booking.bookingType.flightBooking.remainingAmount || 0;
-//     }
-
-//     // If booking has hotelBooking
-//     if (booking.bookingType?.hotelBooking) {
-//       totalAmount += booking.bookingType.hotelBooking.totalAmount || 0;
-//       paidAmount += booking.bookingType.hotelBooking.paidAmount || 0;
-//       remainingAmount += booking.bookingType.hotelBooking.remainingAmount || 0;
-//     }
-
-//     await SalesDataModel.create({
-//       bookingId: booking._id,
-//       userId: booking.userId,
-//       organisationId: booking.organisationId,
-//       totalAmount,
-//       paidAmount,
-//       remainingAmount,
-//       updatedBy: user._id,
-//     });
-
-//     res.json({ message: 'Booking updated successfully', booking });
-//   } catch (err) {
-//     res.status(500).json({ msg: err.message });
-//   }
-// };
