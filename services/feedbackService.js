@@ -32,8 +32,7 @@ export const checkAndSendFeedbackEmails = async () => {
   try {
     // Get bookings where feedback not sent
     const pendingBookings = await SalesDataModel.find({
-      feedbackSent: { $ne: true },
-      feedbackReceived: { $ne: true },
+      'booking.feedbackSent': { $ne: true },
     });
 
     console.log(`Found ${pendingBookings.length} bookings to check`);
