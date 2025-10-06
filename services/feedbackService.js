@@ -6,7 +6,7 @@ import SalesDataModel from '../models/SalesDataModel.js';
 export const scheduleFeedbackEmails = () => {
   // Schedule job to run daily
   cron.schedule(
-    '50 12 * * *',
+    '12 14 * * *',
     async () => {
       try {
         console.log('Scheduled: Checking for completed trips...');
@@ -32,7 +32,7 @@ export const checkAndSendFeedbackEmails = async () => {
   try {
     // Get bookings where feedback not sent
     const pendingBookings = await SalesDataModel.find({
-      'booking.feedbackSent': { $ne: true },
+      $or: [{ 'booking.feedbackSent': { $exists: false } }, { 'booking.feedbackSent': false }, { 'booking.feedbackSent': null }],
     });
 
     console.log(`Found ${pendingBookings.length} bookings to check`);
@@ -42,6 +42,10 @@ export const checkAndSendFeedbackEmails = async () => {
 
     for (const booking of pendingBookings) {
       try {
+        if (booking.booking?.feedbackSent === true) {
+          console.log(`Skipping already sent: ${booking.booking?.uniqueBookingId}`);
+          continue;
+        }
         // Get the latest from booking
         const latestDate = getLatestCompletionDate(booking);
 
