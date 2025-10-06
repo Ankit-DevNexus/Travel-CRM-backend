@@ -36,13 +36,13 @@ export const createFlightAndHotelBooking = async (req, res) => {
     const bookingData = await flightAndHotelBookingModel.create(bookingPayload);
 
     // Log create action
-    await AuditLog.create({
-      action: 'CREATE',
-      collectionName: 'FlightAndHotelBooking',
-      documentId: bookingData._id,
-      userId: user._id,
-      after: bookingData.toObject(),
-    });
+    // await AuditLog.create({
+    //   action: 'CREATE',
+    //   collectionName: 'FlightAndHotelBooking',
+    //   documentId: bookingData._id,
+    //   userId: user._id,
+    //   after: bookingData.toObject(),
+    // });
 
     res.json({ message: 'Booking created successfully', bookingData });
   } catch (err) {
