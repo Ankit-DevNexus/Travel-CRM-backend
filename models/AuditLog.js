@@ -1,10 +1,11 @@
-// models/AuditLog.js (optional but recommended)
+// models/AuditLog.js
 import mongoose from 'mongoose';
 
 const auditLogSchema = new mongoose.Schema(
   {
     orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
     actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    email: { type: String, ref: 'User' },
     action: { type: String, required: true }, // e.g., "lead.create"
     targetType: { type: String }, // "Lead", "User"
     targetId: { type: mongoose.Schema.Types.ObjectId },
@@ -17,4 +18,5 @@ const auditLogSchema = new mongoose.Schema(
 
 // auditLogSchema.index({ orgId: 1, createdAt: -1 });
 
-export default mongoose.model('AuditLog', auditLogSchema);
+const AuditLogModel = mongoose.model('AuditLog', auditLogSchema);
+export default AuditLogModel;

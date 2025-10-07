@@ -2,6 +2,26 @@ import mongoose from 'mongoose';
 import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js';
 import { v4 as uuidv4 } from 'uuid';
 import SalesDataModel from '../models/SalesDataModel.js';
+import AuditLogModel from '../models/AuditLog.js';
+
+// Helper to create an audit log entry
+const createAuditLog = async ({ orgId, actorId, email, action, targetType, targetId, req, meta = {} }) => {
+  try {
+    await AuditLogModel.create({
+      orgId,
+      actorId,
+      email,
+      action,
+      targetType,
+      targetId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      meta,
+    });
+  } catch (err) {
+    console.error('Audit log creation failed:', err.message);
+  }
+};
 
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
@@ -35,14 +55,17 @@ export const createFlightAndHotelBooking = async (req, res) => {
 
     const bookingData = await flightAndHotelBookingModel.create(bookingPayload);
 
-    // Log create action
-    // await AuditLog.create({
-    //   action: 'CREATE',
-    //   collectionName: 'FlightAndHotelBooking',
-    //   documentId: bookingData._id,
-    //   userId: user._id,
-    //   after: bookingData.toObject(),
-    // });
+    //  Audit log for creation
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'flightHotel.create',
+      targetType: 'FlightAndHotelBooking',
+      targetId: bookingData._id,
+      req,
+      meta: { bookingCategory, uniqueBookingId },
+    });
 
     res.json({ message: 'Booking created successfully', bookingData });
   } catch (err) {
@@ -174,6 +197,18 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       await flightAndHotelBookingModel.findByIdAndDelete(id);
     }
 
+    // Audit log for update
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'flightHotel.update',
+      targetType: 'FlightAndHotelBooking',
+      targetId: booking._id,
+      req,
+      meta: { updateFields, isFinancialUpdate },
+    });
+
     res.json({
       message: 'Booking updated successfully',
       deletedbooking: isFinancialUpdate ? null : booking, // return null if deleted
@@ -213,6 +248,18 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
 
     // Delete booking
     await booking.deleteOne();
+
+    // Audit log for deletion
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'flightHotel.delete',
+      targetType: 'FlightAndHotelBooking',
+      targetId: booking._id,
+      req,
+      meta: { uniqueBookingId: booking.uniqueBookingId },
+    });
 
     res.json({ message: 'Booking deleted successfully' });
   } catch (err) {

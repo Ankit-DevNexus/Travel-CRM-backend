@@ -4,9 +4,9 @@ import { sendFeedbackEmail } from './emailService.js'; // Import from emailServi
 import SalesDataModel from '../models/SalesDataModel.js';
 
 export const scheduleFeedbackEmails = () => {
-  // Schedule job to run daily
+  // Run job every 3 hour
   cron.schedule(
-    '20 14 * * *',
+    '0 */3 * * *',
     async () => {
       try {
         console.log('Scheduled: Checking for completed trips...');
