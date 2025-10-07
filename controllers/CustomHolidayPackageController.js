@@ -20,6 +20,8 @@ export const createHolidayPackageBooking = async (req, res) => {
       userId: user._id,
     });
 
+    let bookingCategory = 'customPackage';
+
     //  Audit log for creation
     await createAuditLog({
       orgId: user.organisationId,
