@@ -84,52 +84,59 @@ export const getSalesDataById = async (req, res) => {
 };
 
 // Update sales data (with audit logging)
+
 export const updateSalesData = async (req, res) => {
   try {
     const { id } = req.params;
     const user = req.user;
+    const updates = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, message: 'Invalid sales ID' });
     }
 
+    // 🔹 Fetch old data for logging (before update)
     const oldData = await SalesDataModel.findById(id).lean();
     if (!oldData) {
-      return res.status(404).json({
-        success: false,
-        message: 'Sales data not found',
-      });
+      return res.status(404).json({ success: false, message: 'Record not found' });
     }
 
-    const updatedData = await SalesDataModel.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
-      lean: true,
-    });
+    // 🔹 Build update object dynamically (avoid overwriting nested fields)
+    const updateFields = {};
+    if (updates.booking) {
+      for (const [key, value] of Object.entries(updates.booking)) {
+        updateFields[`booking.${key}`] = value;
+      }
+    }
 
-    // Audit log entry
+    if (updates.updatedBy) updateFields.updatedBy = updates.updatedBy;
+
+    // 🔹 Perform update
+    const updatedData = await SalesDataModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true, runValidators: true });
+
+    // 🔹 Log the action
     await createAuditLog({
-      orgId: user.organisationId,
-      actorId: user._id,
-      actorName: user.actorName,
-      email: user.email,
+      req,
       action: 'sales.update',
       targetType: 'SalesData',
       targetId: id,
-      req,
-      meta: { before: oldData, after: updatedData },
+      meta: {
+        before: oldData,
+        after: updatedData,
+        changedFields: Object.keys(updateFields),
+      },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: 'Sales data updated successfully',
-      updatedData,
+      message: 'Record updated successfully',
+      data: updatedData,
     });
   } catch (error) {
-    console.error('Error updating sales data:', error);
-    return res.status(500).json({
+    console.error('Error updating record:', error);
+    res.status(500).json({
       success: false,
-      message: 'Failed to update sales data',
+      message: 'Failed to update record',
       error: error.message,
     });
   }
