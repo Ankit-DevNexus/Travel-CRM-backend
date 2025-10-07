@@ -1,27 +1,8 @@
-import express from 'express';
 import HolidayPackageBookingModel from '../models/CustomHolidayPackageModel.js';
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 import SalesDataModel from '../models/SalesDataModel.js';
-
-// Helper to create an audit log entry
-const createAuditLog = async ({ orgId, actorId, email, action, targetType, targetId, req, meta = {} }) => {
-  try {
-    await AuditLogModel.create({
-      orgId,
-      actorId,
-      email,
-      action,
-      targetType,
-      targetId,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      meta,
-    });
-  } catch (err) {
-    console.error('Audit log creation failed:', err.message);
-  }
-};
+import { createAuditLog } from '../utils/auditLogHelper.js';
 
 // Create booking
 export const createHolidayPackageBooking = async (req, res) => {
