@@ -1,16 +1,35 @@
 import SalesDataModel from '../models/SalesDataModel.js';
+import AuditLogModel from '../models/AuditLog.js';
+import mongoose from 'mongoose';
 
+// Helper to create audit log entries
+const createAuditLog = async ({ orgId, actorId, actorName, email, action, targetType, targetId, req, meta = {} }) => {
+  try {
+    await AuditLogModel.create({
+      orgId,
+      actorId,
+      actorName,
+      email,
+      action,
+      targetType,
+      targetId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      meta,
+    });
+  } catch (err) {
+    console.error('Audit log creation failed:', err.message);
+  }
+};
+
+// Get all sales
 export const getAllSalesData = async (req, res) => {
   try {
-    // Get page and limit from query params, default to page 1 and limit 10
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Fetch total count for pagination info
     const totalSales = await SalesDataModel.countDocuments();
-
-    // Fetch paginated data
     const salesData = await SalesDataModel.find().skip(skip).limit(limit).lean();
 
     return res.status(200).json({
@@ -23,7 +42,6 @@ export const getAllSalesData = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching sales data:', error);
-
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch sales data',
@@ -32,10 +50,14 @@ export const getAllSalesData = async (req, res) => {
   }
 };
 
-// get single sales
+// Get single sales
 export const getSalesDataById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid sales ID' });
+    }
 
     const salesData = await SalesDataModel.findById(id).lean();
 
@@ -61,19 +83,42 @@ export const getSalesDataById = async (req, res) => {
   }
 };
 
-// Update sales
+// Update sales data (with audit logging)
 export const updateSalesData = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
 
-    const updatedData = await SalesDataModel.findByIdAndUpdate(id, req.body, { new: true, runValidators: true, lean: true });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid sales ID' });
+    }
 
-    if (!updatedData) {
+    const oldData = await SalesDataModel.findById(id).lean();
+    if (!oldData) {
       return res.status(404).json({
         success: false,
         message: 'Sales data not found',
       });
     }
+
+    const updatedData = await SalesDataModel.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+      lean: true,
+    });
+
+    // Audit log entry
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      actorName: user.actorName,
+      email: user.email,
+      action: 'sales.update',
+      targetType: 'SalesData',
+      targetId: id,
+      req,
+      meta: { before: oldData, after: updatedData },
+    });
 
     return res.status(200).json({
       success: true,
@@ -90,10 +135,15 @@ export const updateSalesData = async (req, res) => {
   }
 };
 
-// Delete sales
+// Delete sales data
 export const deleteSalesData = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid sales ID' });
+    }
 
     const deletedData = await SalesDataModel.findByIdAndDelete(id);
 
@@ -103,6 +153,19 @@ export const deleteSalesData = async (req, res) => {
         message: 'Sales data not found',
       });
     }
+
+    // Audit log entry
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      actorName: user.actorName,
+      email: user.email,
+      action: 'sales.delete',
+      targetType: 'SalesData',
+      targetId: id,
+      req,
+      meta: { deletedData },
+    });
 
     return res.status(200).json({
       success: true,
