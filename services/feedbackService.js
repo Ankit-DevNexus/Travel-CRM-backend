@@ -28,6 +28,7 @@ export const checkAndSendFeedbackEmails = async () => {
 
   console.log('Starting feedback email check...');
   console.log("Today's date:", today.toISOString().split('T')[0]);
+  console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
 
   try {
     // Get bookings where feedback not sent
