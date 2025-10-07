@@ -30,7 +30,7 @@ export const getAllSalesData = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const totalSales = await SalesDataModel.countDocuments();
-    const salesData = await SalesDataModel.find().skip(skip).limit(limit).lean();
+    const salesData = await SalesDataModel.find().skip(skip).limit(limit).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
