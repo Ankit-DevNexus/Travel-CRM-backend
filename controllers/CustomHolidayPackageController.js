@@ -4,7 +4,24 @@ import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 import SalesDataModel from '../models/SalesDataModel.js';
 
-const router = express.Router();
+// Helper to create an audit log entry
+const createAuditLog = async ({ orgId, actorId, email, action, targetType, targetId, req, meta = {} }) => {
+  try {
+    await AuditLogModel.create({
+      orgId,
+      actorId,
+      email,
+      action,
+      targetType,
+      targetId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      meta,
+    });
+  } catch (err) {
+    console.error('Audit log creation failed:', err.message);
+  }
+};
 
 // Create booking
 export const createHolidayPackageBooking = async (req, res) => {
@@ -22,6 +39,18 @@ export const createHolidayPackageBooking = async (req, res) => {
       userId: user._id,
     });
 
+    //  Audit log for creation
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'customPackage.create',
+      targetType: 'customPackageBooking',
+      targetId: bookingData._id,
+      req,
+      meta: { bookingCategory, uniqueBookingId },
+    });
+
     res.json({
       message: 'Holiday package booking created successfully',
       bookingData,
@@ -31,37 +60,7 @@ export const createHolidayPackageBooking = async (req, res) => {
   }
 };
 
-// export const createHolidayPackageBooking = async (req, res) => {
-//   try {
-//     const user = req.user;
-
-//     // generate unique ID
-//     const uniqueBookingId = "USR-" + uuidv4().split("-")[0].toUpperCase();
-
-//     const bookingPayload = {
-//       uniqueBookingId,
-//       querySource: req.body?.querySource || {},   // safe fallback
-//       hotelBooking: req.body?.hotelBooking || {},
-//       transportAndActivities: req.body?.transportAndActivities || [],
-//       flightBooking: req.body?.flightBooking || {},
-//       organisationId: user.organisationId,
-//       adminId: user.adminId,
-//       userId: user._id,
-//     };
-
-//     const bookingData = await HolidayPackageBookingModel.create(bookingPayload);
-
-//     res.json({
-//       message: "Holiday package booking created successfully",
-//       bookingData,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
 // Get all bookings
-
 export const getAllHolidayPackageBooking = async (req, res) => {
   try {
     const currentPage = parseInt(req.query.currentPage) || 1;
@@ -180,6 +179,18 @@ export const updateHolidayPackage = async (req, res) => {
       await HolidayPackageBookingModel.findByIdAndDelete(id);
     }
 
+    // Audit log for update
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'customPackage.update',
+      targetType: 'customPackageBooking',
+      targetId: booking._id,
+      req,
+      meta: { updateFields, isFinancialUpdate },
+    });
+
     res.json({
       message: 'Booking updated successfully',
       deletedbooking: isFinancialUpdate ? null : booking, // return null if deleted
@@ -221,11 +232,21 @@ export const deleteHolidayPackageBooking = async (req, res) => {
     // Delete booking
     await booking.deleteOne();
 
+    // Audit log for deletion
+    await createAuditLog({
+      orgId: user.organisationId,
+      actorId: user._id,
+      email: user.email,
+      action: 'customPackage.delete',
+      targetType: 'customPackageBooking',
+      targetId: booking._id,
+      req,
+      meta: { uniqueBookingId: booking.uniqueBookingId },
+    });
+
     res.json({ message: 'Booking deleted successfully' });
   } catch (err) {
     console.error('Error deleting booking:', err);
     res.status(500).json({ msg: err.message });
   }
 };
-
-export default router;
