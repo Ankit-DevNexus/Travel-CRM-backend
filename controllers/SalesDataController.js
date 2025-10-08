@@ -84,7 +84,6 @@ export const getSalesDataById = async (req, res) => {
 };
 
 // Update sales data (with audit logging)
-
 export const updateSalesData = async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,7 +100,7 @@ export const updateSalesData = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Record not found' });
     }
 
-    // 🔹 Build update object dynamically (avoid overwriting nested fields)
+    // Build update object dynamically
     const updateFields = {};
     if (updates.booking) {
       for (const [key, value] of Object.entries(updates.booking)) {
@@ -111,10 +110,10 @@ export const updateSalesData = async (req, res) => {
 
     if (updates.updatedBy) updateFields.updatedBy = updates.updatedBy;
 
-    // 🔹 Perform update
+    // Perform update
     const updatedData = await SalesDataModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true, runValidators: true });
 
-    // 🔹 Log the action
+    //Log the action
     await createAuditLog({
       req,
       action: 'sales.update',

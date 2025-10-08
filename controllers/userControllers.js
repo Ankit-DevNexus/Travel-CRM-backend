@@ -12,31 +12,24 @@ const generateToken = (user) => {
       email: user.email,
       name: user.name,
       role: user.role,
-      adminId:
-        user.role === 'admin'
-          ? user._id.toString()
-          : user.adminId
-          ? user.adminId.toString()
-          : null, // fallback if no admin assigned
+      adminId: user.role === 'admin' ? user._id.toString() : user.adminId ? user.adminId.toString() : null, // fallback if no admin assigned
       organisationId: user.organisationId, // important
     },
     process.env.JWT_SECRET,
-    { expiresIn: '1d' }
+    { expiresIn: '1d' },
   );
 };
 
 export const signup = async (req, res) => {
   try {
-    // console.log("Request body:", req.body);
-
     if (req.user.role !== 'admin') {
       return res.status(403).json({ msg: 'Not allowed' });
     }
 
     const newUser = await userModel.create({
       ...req.body,
-      EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0], // fallback
-      role: 'user', // always user
+      EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0],
+      role: 'user',
       organisationId: req.user.organisationId,
       adminId: req.user._id,
     });
@@ -61,10 +54,7 @@ export const login = async (req, res) => {
 
     const user = await userModel.findOne(query);
 
-    if (!user || !user.isActive)
-      return res
-        .status(400)
-        .json({ msg: 'Invalid username or account disabled' });
+    if (!user || !user.isActive) return res.status(400).json({ msg: 'Invalid username or account disabled' });
 
     // Validate role
     if (role && user.role !== role) {
@@ -147,7 +137,7 @@ export const updateUser = async (req, res) => {
     const updatedUser = await userModel.findByIdAndUpdate(
       id,
       { $set: updates }, // only update provided fields
-      { new: true } // return updated document
+      { new: true }, // return updated document
     );
 
     if (!updatedUser) {
@@ -177,9 +167,7 @@ export const deleteUser = async (req, res) => {
       user: deletedUser,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: 'Error deleting user', error: error.message });
+    res.status(500).json({ message: 'Error deleting user', error: error.message });
   }
 };
 
