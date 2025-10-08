@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 
 const UserSchema = new mongoose.Schema(
   {
+    userId: String,
     firstName: String,
     lastName: String,
     EmpUsername: {
@@ -45,7 +46,7 @@ const UserSchema = new mongoose.Schema(
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before saving

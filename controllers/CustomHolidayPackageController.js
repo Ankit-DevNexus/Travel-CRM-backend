@@ -56,10 +56,8 @@ export const getAllHolidayPackageBooking = async (req, res) => {
       query.adminId = req.user._id;
     } else if (req.user.role === 'user') {
       query.$or = [
-        // { adminId: req.user.adminId, createdByEmail: req.user.email }, // user’s own leads
-        // { adminId: req.user.adminId, createdByRole: "admin" }
         { userId: req.user._id }, // user’s own bookings
-        { adminId: req.user.adminId }, // admin’s bookings         // admin’s leads
+        { adminId: req.user.adminId }, // admin’s leads
       ];
     }
 

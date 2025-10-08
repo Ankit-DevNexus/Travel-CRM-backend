@@ -27,6 +27,7 @@ import {
 import { forgotPassword, resetPassword } from '../controllers/ForgetPasswordController.js';
 import { deleteSalesData, getAllSalesData, getSalesDataById, updateSalesData } from '../controllers/SalesDataController.js';
 import { submitFeedback, triggerFeedbackEmails } from '../controllers/feedbackController.js';
+import { getAllAuditLogs } from '../controllers/AuditLogsController.js';
 
 const router = express.Router();
 
@@ -86,5 +87,8 @@ router.delete('/sales-data/delete/:id', Authenticate, deleteSalesData);
 // manual feedback send
 router.post('/trigger-feedback-emails', triggerFeedbackEmails);
 router.patch('/submit-feedback/:bookingId', submitFeedback);
+
+// audit logs
+router.get('/all-audit-logs', Authenticate, getAllAuditLogs);
 
 export default router;
