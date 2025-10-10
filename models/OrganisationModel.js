@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 const orgSchema = new mongoose.Schema(
   {
+    adminId: String,
     companyName: { type: String, required: true },
     industry: String,
     adminEmail: { type: String, required: true, unique: true },
@@ -22,7 +23,7 @@ const orgSchema = new mongoose.Schema(
     logoUrl: String,
     gstNumber: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Organization = mongoose.model('Organization', orgSchema);

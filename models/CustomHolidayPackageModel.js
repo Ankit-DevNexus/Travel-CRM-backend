@@ -108,25 +108,16 @@ const flightBookingSchema = new mongoose.Schema(
 
 const bookingSchema = new mongoose.Schema(
   {
-    uniqueBookingId: { type: String, unique: true, required: true },
     querySource: querySourceSchema,
     hotelBooking: hotelBookingSchema,
     transportAndActivities: [transportSchema],
     flightBooking: flightBookingSchema,
 
+    uniqueBookingId: { type: String, unique: true, required: true },
+    userId: String,
     organisationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: true,
-    },
-    adminId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
       required: true,
     },
     bookingCategory: {

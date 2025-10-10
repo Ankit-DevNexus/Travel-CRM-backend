@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 const auditLogSchema = new mongoose.Schema(
   {
     orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
-    actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    actorId: { type: String, ref: 'User' },
     email: { type: String, ref: 'User' },
     action: { type: String, required: true }, // e.g., "lead.create"
     targetType: { type: String }, // "Lead", "User"

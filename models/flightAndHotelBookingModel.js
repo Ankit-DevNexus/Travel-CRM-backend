@@ -44,24 +44,18 @@ const hotelBookingSchema = new mongoose.Schema(
 );
 
 const bookingSchema = new mongoose.Schema({
-  uniqueBookingId: { type: String, unique: true }, // custom booking ID
-
   bookingType: {
     flightBooking: flightBookingSchema,
     hotelBooking: hotelBookingSchema,
   },
-
+  uniqueBookingId: { type: String, unique: true }, // custom booking ID
+  userId: String,
+  createdByUserId: String,
   organisationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
     required: true,
   },
-  adminId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-
   // Indicates type of booking
   bookingCategory: {
     type: String,

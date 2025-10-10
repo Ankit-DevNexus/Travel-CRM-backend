@@ -7,27 +7,33 @@ export const createCoupon = async (req, res) => {
   try {
     const user = req.user;
 
-    const couponData = await CouponModel.create({
+    // Ensure consistent data mapping
+    const couponPayload = {
       ...req.body,
-      organisationId: user.organisationId,
-      adminId: user.adminId,
-      userId: user._id,
-    });
+      organisationId: user.organisationId, // always the org the user belongs to
+      adminId: user.createdByUserId || user._id, // ADM-A0002 (string) or fallback to ObjectId
+      userId: user.userId, // EMP-A0001
+    };
+
+    const couponData = await CouponModel.create(couponPayload);
 
     // Audit log entry
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
-      actorName: user.actorName,
+      actorId: user.userId,
+      actorName: user.actorName || user.EmpUsername || user.email,
       email: user.email,
       action: 'coupon.create',
       targetType: 'Coupon',
       targetId: couponData._id,
       req,
-      meta: { createdData: req.body },
+      meta: { createdData: couponPayload },
     });
 
-    res.json({ message: 'Coupon created successfully', couponData });
+    res.status(201).json({
+      message: 'Coupon created successfully',
+      couponData,
+    });
   } catch (error) {
     console.error('Error creating coupon:', error);
     res.status(500).json({ error: error.message });
@@ -40,9 +46,9 @@ export const getAllCoupon = async (req, res) => {
     let query = {};
 
     if (req.user.role === 'admin') {
-      query.adminId = req.user._id;
+      query.organisationId = req.user.organisationId;
     } else if (req.user.role === 'user') {
-      query.$or = [{ userId: req.user._id }, { adminId: req.user.adminId }];
+      query.$or = [{ userId: req.user._id }, { userId: req.user.userId }, { adminId: req.user.adminId }];
     }
 
     const coupon = await CouponModel.find(query);
@@ -65,13 +71,28 @@ export const getAllCoupon = async (req, res) => {
 export const getCouponById = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user; // from auth middleware
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid coupon ID' });
     }
 
-    const coupon = await CouponModel.findById(id);
-    if (!coupon) return res.status(404).json({ error: 'Coupon not found' });
+    // base query
+    let query = { _id: id };
+
+    if (user.role === 'admin') {
+      // admin can access any coupon in their organisation
+      query.organisationId = user.organisationId;
+    } else {
+      // normal user can access only their own coupon
+      query.userId = user.userId;
+    }
+
+    const coupon = await CouponModel.findOne(query);
+
+    if (!coupon) {
+      return res.status(404).json({ error: 'Coupon not found or not authorized' });
+    }
 
     res.status(200).json({
       message: 'Coupon fetched successfully',
@@ -103,7 +124,7 @@ export const updateCoupon = async (req, res) => {
 
     const updatedCoupon = await CouponModel.findByIdAndUpdate(id, { $set: req.body }, { new: true, runValidators: true });
 
-    // ✅ Audit log entry
+    // Audit log entry
     await createAuditLog({
       orgId: user.organisationId,
       actorId: user._id,
@@ -144,7 +165,7 @@ export const deleteCoupon = async (req, res) => {
       return res.status(404).json({ error: 'Coupon not found' });
     }
 
-    // ✅ Audit log entry
+    // Audit log entry
     await createAuditLog({
       orgId: user.organisationId,
       actorId: user._id,
@@ -169,153 +190,3 @@ export const deleteCoupon = async (req, res) => {
     });
   }
 };
-
-// import mongoose from 'mongoose';
-// import CouponModel from '../models/CouponModel.js';
-
-// // Helper to create an audit log entry
-// const createAuditLog = async ({ orgId, actorId, email, action, targetType, targetId, req, meta = {} }) => {
-//   try {
-//     await AuditLogModel.create({
-//       orgId,
-//       actorId,
-//       email,
-//       action,
-//       targetType,
-//       targetId,
-//       ip: req.ip,
-//       userAgent: req.headers['user-agent'],
-//       meta,
-//     });
-//   } catch (err) {
-//     console.error('Audit log creation failed:', err.message);
-//   }
-// };
-
-// export const createCoupon = async (req, res) => {
-//   try {
-//     const user = req.user;
-
-//     const couponData = await CouponModel.create({
-//       ...req.body,
-//       organisationId: user.organisationId,
-//       adminId: user.adminId,
-//       userId: user._id,
-//     });
-
-//     res.json({ message: 'Coupon created successfully', couponData });
-//   } catch (error) {
-//     res.status(500).json({ msg: err.message });
-//   }
-// };
-
-// export const getAllCoupon = async (req, res) => {
-//   try {
-//     let query = {};
-
-//     if (req.user.role === 'admin') {
-//       query.adminId = req.user._id;
-//     } else if (req.user.role === 'user') {
-//       query.$or = [
-//         { userId: req.user._id }, // user’s own bookings
-//         { adminId: req.user.adminId }, // admin’s bookings         // admin’s leads
-//       ];
-//     }
-
-//     const coupon = await CouponModel.find(query);
-
-//     res.status(200).json({
-//       message: 'Coupon fetched successfully',
-//       totolCoupon: coupon.length,
-//       data: coupon,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching Coupon:', error);
-
-//     res.status(500).json({
-//       error: 'Failed to fetch Coupon',
-//       details: error.message,
-//     });
-//   }
-// };
-
-// export const getCouponById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ error: 'Invalid coupon ID' });
-//     }
-
-//     const coupon = await CouponModel.findById(id);
-
-//     if (!coupon) return res.status(404).json({ error: 'Coupon details not found' });
-//     res.status(200).json({
-//       message: 'Coupon fetched successfully',
-//       data: coupon,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching Coupon:', error);
-
-//     res.status(500).json({
-//       error: 'Failed to fetch Coupon',
-//       details: error.message,
-//     });
-//   }
-// };
-
-// // Update Coupon
-// export const updateCoupon = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ error: 'Invalid coupon ID' });
-//     }
-
-//     const updatedCoupon = await CouponModel.findByIdAndUpdate(id, { $set: req.body }, { new: true, runValidators: true });
-
-//     if (!updatedCoupon) {
-//       return res.status(404).json({ error: 'Coupon not found' });
-//     }
-
-//     res.status(200).json({
-//       message: 'Coupon updated successfully',
-//       data: updatedCoupon,
-//     });
-//   } catch (error) {
-//     console.error('Error updating Coupon:', error);
-//     res.status(500).json({
-//       error: 'Failed to update Coupon',
-//       details: error.message,
-//     });
-//   }
-// };
-
-// // Delete Coupon
-// export const deleteCoupon = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ error: 'Invalid coupon ID' });
-//     }
-
-//     const deleteCoupon = await CouponModel.findByIdAndDelete(id);
-
-//     if (!deleteCoupon) {
-//       return res.status(404).json({ error: 'Coupon not found' });
-//     }
-
-//     res.status(200).json({
-//       message: 'Coupon delete sccessfully',
-//       data: deleteCoupon,
-//     });
-//   } catch (error) {
-//     console.error('Error deleting Coupon:', error);
-//     res.status(500).json({
-//       error: 'Failed to delete Coupon',
-//       details: error.message,
-//     });
-//   }
-// };

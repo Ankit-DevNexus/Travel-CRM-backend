@@ -22,23 +22,90 @@ const generateToken = (user) => {
 
 export const signup = async (req, res) => {
   try {
+    // Only admin can create sub-users
     if (req.user.role !== 'admin') {
       return res.status(403).json({ msg: 'Not allowed' });
     }
 
+    // Get admin details
+    const adminUser = await userModel.findById(req.user._id).select('userId organisationId');
+    console.log('adminUser', adminUser);
+
+    if (!adminUser) {
+      return res.status(404).json({ msg: 'Admin not found' });
+    }
+
+    // Generate unique EMP ID
+    const lastEmp = await userModel.findOne({ role: 'user' }).sort({ createdAt: -1 }).select('userId').lean();
+
+    let newEmpId = 'EMP-A0001';
+    if (lastEmp && lastEmp.userId) {
+      const match = lastEmp.userId.match(/EMP-A(\d+)/);
+      const lastNumber = match ? parseInt(match[1]) : 0;
+      const nextNumber = lastNumber + 1;
+      newEmpId = `EMP-A${nextNumber.toString().padStart(4, '0')}`;
+    }
+
+    // Create sub-user
     const newUser = await userModel.create({
       ...req.body,
       EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0],
       role: 'user',
-      organisationId: req.user.organisationId,
-      adminId: req.user._id,
+      userId: newEmpId,
+      createdByUserId: adminUser.userId,
+      adminId: adminUser.createdByUserId || adminUser._id,
+      organisationId: adminUser.organisationId,
     });
 
-    res.status(201).json(newUser);
+    res.status(201).json({
+      message: 'User created successfully',
+      user: newUser,
+    });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Email or username already exists' });
+    }
     res.status(400).json({ msg: 'Error creating user', error: err.message });
   }
 };
+
+// export const signups = async (req, res) => {
+//   try {
+//     if (req.user.role !== 'admin') {
+//       return res.status(403).json({ msg: 'Not allowed' });
+//     }
+
+//     // Find the last created user to get the latest userId
+//     const lastUser = await userModel.findOne({}, {}, { sort: { createdAt: -1 } });
+
+//     let newUserId = 'EMP-A0001'; // default for first user
+//     if (lastUser && lastUser.userId) {
+//       // Extract the numeric part and increment
+//       const lastNumber = parseInt(lastUser.userId.replace('EMP-A', '')) || 0;
+//       const nextNumber = (lastNumber + 1).toString().padStart(4, '0');
+//       newUserId = `EMP-A${nextNumber}`;
+//     }
+
+//     // Create new user
+//     const newUser = await userModel.create({
+//       ...req.body,
+//       EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0],
+//       role: 'user',
+//       organisationId: req.user.organisationId,
+//       adminId: req.user._id,
+//       userId: newUserId, // unique incremental user ID
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'User created successfully',
+//       data: newUser,
+//     });
+//   } catch (err) {
+//     console.error('Error creating user:', err);
+//     res.status(400).json({ msg: 'Error creating user', error: err.message });
+//   }
+// };
 
 // // Login Controller
 export const login = async (req, res) => {

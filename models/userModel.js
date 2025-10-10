@@ -6,6 +6,12 @@ import bcrypt from 'bcrypt';
 const UserSchema = new mongoose.Schema(
   {
     userId: String,
+    createdByUserId: String,
+    adminId: String, // the admin who created this user
+    organisationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+    },
     firstName: String,
     lastName: String,
     EmpUsername: {
@@ -28,11 +34,6 @@ const UserSchema = new mongoose.Schema(
       of: Boolean,
       default: {},
     },
-    organisationId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Organization',
-    },
-    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // the admin who created this user
 
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date }, // track last login

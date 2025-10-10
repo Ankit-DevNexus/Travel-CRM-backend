@@ -6,40 +6,44 @@ import { createAuditLog } from '../utils/auditLogHelper.js';
 
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
-    const user = req.user;
+    const user = req.user; // Populated from JWT middleware
     const { flightBooking, hotelBooking } = req.body.bookingType || {};
 
+    // Determine booking type
     let bookingCategory = null;
     if (flightBooking && !hotelBooking) bookingCategory = 'flight';
     else if (!flightBooking && hotelBooking) bookingCategory = 'hotel';
     else if (flightBooking && hotelBooking) bookingCategory = 'HotelAndFlight';
 
+    // Generate unique booking ID
     const uniqueBookingId = 'USR-' + uuidv4().split('-')[0].toUpperCase();
 
-    // booking payload
+    // Build base payload
     const bookingPayload = {
-      uniqueBookingId,
       bookingType: {
         flightBooking: flightBooking || undefined,
         hotelBooking: hotelBooking || undefined,
       },
-      organisationId: user.organisationId,
+      uniqueBookingId,
       bookingCategory,
+      organisationId: user.organisationId, // ObjectId of org
     };
 
+    // Set IDs based on role
     if (user.role === 'admin') {
-      bookingPayload.adminId = user._id;
+      bookingPayload.adminId = user._id; // ObjectId
+      bookingPayload.userId = user.userId; // string like ADM-A0001
     } else if (user.role === 'user') {
-      bookingPayload.adminId = user.adminId;
-      bookingPayload.userId = user._id;
+      bookingPayload.userId = user.userId; // string like EMP-A0001
     }
 
+    // Create booking record
     const bookingData = await flightAndHotelBookingModel.create(bookingPayload);
 
-    //  Audit log for creation
+    // Audit log
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       email: user.email,
       action: 'flightHotel.create',
       targetType: 'FlightAndHotelBooking',
@@ -48,8 +52,12 @@ export const createFlightAndHotelBooking = async (req, res) => {
       meta: { bookingCategory, uniqueBookingId },
     });
 
-    res.json({ message: 'Booking created successfully', bookingData });
+    res.status(201).json({
+      message: 'Booking created successfully',
+      bookingData,
+    });
   } catch (err) {
+    console.error('Error creating booking:', err);
     res.status(500).json({ msg: err.message });
   }
 };
@@ -57,7 +65,7 @@ export const createFlightAndHotelBooking = async (req, res) => {
 export const getAllFlightAndHotelBooking = async (req, res) => {
   try {
     const currentPage = parseInt(req.query.currentPage) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 100;
     const skip = (currentPage - 1) * limit;
 
     let query = {};
@@ -67,7 +75,7 @@ export const getAllFlightAndHotelBooking = async (req, res) => {
       query.organisationId = req.user.organisationId;
     } else if (req.user.role === 'user') {
       // User should only see his own bookings
-      query.userId = req.user._id;
+      query.userId = req.user.userId;
     }
 
     // Fetch data in parallel
@@ -96,20 +104,36 @@ export const getAllFlightAndHotelBooking = async (req, res) => {
 export const getBookedFlightAndHotelById = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid flight ID' });
+      return res.status(400).json({ error: 'Invalid booking ID' });
     }
 
-    const flight = await flightAndHotelBookingModel.findById(id);
-    if (!flight) return res.status(404).json({ error: 'Flight and Hotels details not found' });
+    // Prepare the base query
+    let query = { _id: id };
+
+    if (user.role === 'admin') {
+      // Admin can access any booking within their organisation
+      query.organisationId = user.organisationId;
+    } else {
+      // Normal user can access only their own bookings
+      query.userId = user.userId;
+    }
+
+    const booking = await flightAndHotelBookingModel.findOne(query);
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Flight and Hotel details not found or not authorized' });
+    }
 
     res.status(200).json({
-      message: 'Flight and Hotels details fetched successfully',
-      data: flight,
+      message: 'Flight and Hotel details fetched successfully',
+      data: booking,
     });
   } catch (error) {
     res.status(500).json({
-      error: 'Failed to fetch flight and Hotels details',
+      error: 'Failed to fetch flight and Hotel details',
       details: error.message,
     });
   }
@@ -129,7 +153,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
 
     // Access control
     if (user.role === 'user') {
-      if (booking.userId.toString() !== user._id.toString()) {
+      if (booking.userId.toString() !== user.userId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     } else if (user.role === 'admin') {
@@ -164,10 +188,10 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     let salesData = null;
 
     if (isFinancialUpdate) {
-      // Convert lead → sale
+      // Convert lead sale
       salesData = await SalesDataModel.create({
         booking, // store the entire booking data
-        updatedBy: user._id,
+        updatedBy: user.userId,
       });
 
       // Delete booking from flight/hotel model
@@ -176,7 +200,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       // Audit log: Convert lead → sale
       await createAuditLog({
         orgId: user.organisationId,
-        actorId: user._id,
+        actorId: user.userId,
         email: user.email,
         action: 'lead.convertToSale',
         targetType: 'FlightAndHotelBooking',
@@ -185,10 +209,10 @@ export const updateFlightAndHotelBooking = async (req, res) => {
         meta: { updateFields },
       });
     } else {
-      // Audit log: Normal data update
+      // Audit log
       await createAuditLog({
         orgId: user.organisationId,
-        actorId: user._id,
+        actorId: user.userId,
         email: user.email,
         action: 'flightHotel.updateData',
         targetType: 'FlightAndHotelBooking',
@@ -311,7 +335,7 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
 
     // Access control
     if (user.role === 'user') {
-      if (booking.userId.toString() !== user._id.toString()) {
+      if (booking.userId.toString() !== user.userId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     } else if (user.role === 'admin') {
@@ -326,7 +350,7 @@ export const deleteFlightAndHotelBooking = async (req, res) => {
     // Audit log for deletion
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       email: user.email,
       action: 'flightHotel.delete',
       targetType: 'FlightAndHotelBooking',

@@ -3,11 +3,7 @@ import mongoose from 'mongoose';
 const SalesDataSchema = new mongoose.Schema(
   {
     booking: { type: Object, required: true },
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
+    updatedBy: String,
   },
   { timestamps: true, strict: false },
 );

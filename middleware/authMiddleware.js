@@ -16,6 +16,7 @@ export const Authenticate = async (req, res, next) => {
 
     req.user = {
       _id: user._id,
+      userId: user.userId,
       role: user.role,
       organisationId: user.organisationId,
       adminId: user.role === 'admin' ? user._id : user.adminId,
