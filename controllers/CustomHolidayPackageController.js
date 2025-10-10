@@ -16,8 +16,7 @@ export const createHolidayPackageBooking = async (req, res) => {
       ...req.body,
       uniqueBookingId,
       organisationId: user.organisationId,
-      adminId: user.adminId,
-      userId: user._id,
+      userId: user.userId,
     });
 
     let bookingCategory = 'customPackage';
@@ -25,7 +24,7 @@ export const createHolidayPackageBooking = async (req, res) => {
     //  Audit log for creation
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       email: user.email,
       action: 'customPackage.create',
       targetType: 'customPackageBooking',
@@ -53,12 +52,9 @@ export const getAllHolidayPackageBooking = async (req, res) => {
     let query = {};
 
     if (req.user.role === 'admin') {
-      query.adminId = req.user._id;
+      query.organisationId = req.user.organisationId;
     } else if (req.user.role === 'user') {
-      query.$or = [
-        { userId: req.user._id }, // user’s own bookings
-        { adminId: req.user.adminId }, // admin’s leads
-      ];
+      query.$or = [{ userId: req.user.userId }, { adminId: req.user.adminId }];
     }
 
     // fetch data
@@ -84,18 +80,26 @@ export const getAllHolidayPackageBooking = async (req, res) => {
 export const getBookedHolidayPackageById = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = req.user;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid flight ID' });
     }
 
-    const holiday = await HolidayPackageBookingModel.findById(id);
+    let query = { _id: id };
+
+    if (user.role === 'admin') {
+      query.organisationId = user.organisationId;
+    } else {
+      query.userId = user.userId;
+    }
+
+    const holiday = await HolidayPackageBookingModel.findOne(query);
     if (!holiday) return res.status(404).json({ error: 'Holiday package details not found' });
 
     res.status(200).json({
       message: 'Holiday package details fetched successfully',
       data: holiday,
     });
-    res.json(holiday);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -114,9 +118,17 @@ export const updateHolidayPackage = async (req, res) => {
     let booking = await HolidayPackageBookingModel.findById(id);
     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
 
+    let query = { _id: id };
+
+    if (user.role === 'admin') {
+      query.organisationId = user.organisationId;
+    } else {
+      query.userId = user.userId;
+    }
+
     // Access control
     if (user.role === 'user') {
-      if (booking.userId.toString() !== user._id.toString()) {
+      if (booking.userId.toString() !== user.userId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     } else if (user.role === 'admin') {
@@ -153,7 +165,7 @@ export const updateHolidayPackage = async (req, res) => {
       // Store the 'entire booking record' in SalesDataModel
       salesDataHolidayPackage = await SalesDataModel.create({
         booking, // store full booking object
-        updatedBy: user._id,
+        updatedBy: user.userId,
       });
 
       // Delete booking from FlightAndHotelBookingModel after saving
@@ -163,7 +175,7 @@ export const updateHolidayPackage = async (req, res) => {
     // Audit log for update
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       email: user.email,
       action: 'customPackage.update',
       targetType: 'customPackageBooking',
@@ -201,7 +213,7 @@ export const deleteHolidayPackageBooking = async (req, res) => {
 
     // Access control
     if (user.role === 'user') {
-      if (booking.userId.toString() !== user._id.toString()) {
+      if (booking.userId.toString() !== user.userId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to delete this booking' });
       }
     } else if (user.role === 'admin') {
@@ -216,7 +228,7 @@ export const deleteHolidayPackageBooking = async (req, res) => {
     // Audit log for deletion
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       email: user.email,
       action: 'customPackage.delete',
       targetType: 'customPackageBooking',

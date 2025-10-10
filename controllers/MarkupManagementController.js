@@ -10,14 +10,13 @@ export const CreateMarkupManagement = async (req, res) => {
     const markupData = await MarkupManagementModel.create({
       ...req.body,
       organisationId: user.organisationId,
-      adminId: user.adminId,
-      userId: user._id,
+      userId: user.userId,
     });
 
     // Create audit log entry
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       actorName: user.actorName,
       email: user.email,
       action: 'markup.create',
@@ -42,7 +41,7 @@ export const getAllMarkupManagement = async (req, res) => {
     if (req.user.role === 'admin') {
       query.organisationId = req.user.organisationId;
     } else if (req.user.role === 'user') {
-      query.userId = req.user._id;
+      query.userId = req.user.userId;
     }
 
     const markupData = await MarkupManagementModel.find(query);
@@ -102,7 +101,7 @@ export const updateMarkupManagement = async (req, res) => {
     // Create audit log entry
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       actorName: user.actorName,
       email: user.email,
       action: 'markup.update',
@@ -143,7 +142,7 @@ export const deleteMarkupManagement = async (req, res) => {
     // Create audit log entry
     await createAuditLog({
       orgId: user.organisationId,
-      actorId: user._id,
+      actorId: user.userId,
       actorName: user.actorName,
       email: user.email,
       action: 'markup.delete',

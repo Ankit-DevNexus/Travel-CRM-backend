@@ -26,11 +26,21 @@ const createAuditLog = async ({ orgId, actorId, actorName, email, action, target
 export const getAllSalesData = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 100;
     const skip = (page - 1) * limit;
 
-    const totalSales = await SalesDataModel.countDocuments();
-    const salesData = await SalesDataModel.find().skip(skip).limit(limit).sort({ createdAt: -1 });
+    let query = {};
+    const user = req.user;
+
+    if (user.role === 'admin') {
+      // organisationId is inside booking
+      query['booking.organisationId'] = user.organisationId;
+    } else if (user.role === 'user') {
+      query.$or = [{ 'booking.userId': user.userId }, { updatedBy: user.userId }];
+    }
+
+    const totalSales = await SalesDataModel.countDocuments(query);
+    const salesData = await SalesDataModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -83,7 +93,7 @@ export const getSalesDataById = async (req, res) => {
   }
 };
 
-// Update sales data (with audit logging)
+// Update sales data
 export const updateSalesData = async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,7 +104,7 @@ export const updateSalesData = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid sales ID' });
     }
 
-    // 🔹 Fetch old data for logging (before update)
+    // Fetch old data for logging (before update)
     const oldData = await SalesDataModel.findById(id).lean();
     if (!oldData) {
       return res.status(404).json({ success: false, message: 'Record not found' });
@@ -115,10 +125,13 @@ export const updateSalesData = async (req, res) => {
 
     //Log the action
     await createAuditLog({
-      req,
+      orgId: user.organisationId,
+      actorId: user.userId,
+      email: user.email,
       action: 'sales.update',
       targetType: 'SalesData',
-      targetId: id,
+      targetId: oldData._id,
+      req,
       meta: {
         before: oldData,
         after: updatedData,

@@ -43,3 +43,78 @@ export const getAllAuditLogs = async (req, res) => {
     });
   }
 };
+
+// delete individual record
+export const deleteAuditLogById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid audit log ID',
+      });
+    }
+
+    // Optional: restrict deletion to admins only
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only admins can delete audit logs',
+      });
+    }
+
+    const deletedLog = await AuditLogModel.findByIdAndDelete(id);
+
+    if (!deletedLog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Audit log not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Audit log deleted successfully',
+      data: deletedLog,
+    });
+  } catch (error) {
+    console.error('Error deleting audit log:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete audit log',
+      error: error.message,
+    });
+  }
+};
+
+// delete all records
+export const deleteAllAuditLogs = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Only allow admin to delete all logs
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only admins can delete all audit logs',
+      });
+    }
+
+    const result = await AuditLogModel.deleteMany({}); // deletes all records
+
+    return res.status(200).json({
+      success: true,
+      message: 'All audit logs deleted successfully',
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error('Error deleting audit logs:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete audit logs',
+      error: error.message,
+    });
+  }
+};
