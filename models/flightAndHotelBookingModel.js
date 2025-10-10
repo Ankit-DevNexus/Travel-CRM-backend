@@ -49,6 +49,7 @@ const bookingSchema = new mongoose.Schema({
     hotelBooking: hotelBookingSchema,
   },
   uniqueBookingId: { type: String, unique: true }, // custom booking ID
+
   userId: String,
   createdByUserId: String,
   organisationId: {
