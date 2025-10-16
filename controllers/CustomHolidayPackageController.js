@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 import SalesDataModel from '../models/SalesDataModel.js';
 import { createAuditLog } from '../utils/auditLogHelper.js';
+import userModel from '../models/userModel.js';
 
 // Create booking
 export const createHolidayPackageBooking = async (req, res) => {
@@ -106,6 +107,101 @@ export const getBookedHolidayPackageById = async (req, res) => {
 };
 
 // Update booking
+// export const updateHolidayPackage = async (req, res) => {
+//   try {
+//     const user = req.user;
+//     const { id } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ msg: 'Invalid booking ID format' });
+//     }
+
+//     let oldBooking = await HolidayPackageBookingModel.findById(id);
+//     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+//     let query = { _id: id };
+
+//     if (user.role === 'admin') {
+//       query.organisationId = user.organisationId;
+//     } else {
+//       query.userId = user.userId;
+//     }
+
+//     // Access control
+//     if (user.role === 'user') {
+//       if (booking.userId.toString() !== user.userId.toString()) {
+//         return res.status(403).json({ msg: 'Not allowed to update this booking' });
+//       }
+//     } else if (user.role === 'admin') {
+//       if (booking.organisationId.toString() !== user.organisationId.toString()) {
+//         return res.status(403).json({ msg: 'Not allowed to update this booking' });
+//       }
+//     }
+
+//     // Flatten request body into dot notation keys
+//     const flattenObject = (obj, parentKey = '', res = {}) => {
+//       for (let key in obj) {
+//         const newKey = parentKey ? `${parentKey}.${key}` : key;
+//         if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && obj[key] !== null) {
+//           flattenObject(obj[key], newKey, res);
+//         } else {
+//           res[newKey] = obj[key];
+//         }
+//       }
+//       return res;
+//     };
+
+//     const updateFields = flattenObject(req.body);
+
+//     // Apply update using $set
+//     booking = await HolidayPackageBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+
+//     // Check if any financial fields exist in the update
+//     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
+//     const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
+
+//     let salesDataHolidayPackage = null;
+
+//     if (isFinancialUpdate) {
+//       // Store the 'entire booking record' in SalesDataModel
+//       salesDataHolidayPackage = await SalesDataModel.create({
+//         booking, // store full booking object
+//         updatedBy: user.userId,
+//       });
+
+//       // Delete booking from FlightAndHotelBookingModel after saving
+//       await HolidayPackageBookingModel.findByIdAndDelete(id);
+//     }
+
+//     // Increment sales count for user
+//     await userModel.findOneAndUpdate(
+//       { userId: user.userId },
+//       { $inc: { salesCount: 1 } }, // increment by 1
+//       { new: true },
+//     );
+
+//     // Audit log for update
+//     await createAuditLog({
+//       orgId: user.organisationId,
+//       actorId: user.userId,
+//       email: user.email,
+//       action: 'customPackage.update',
+//       targetType: 'customPackageBooking',
+//       targetId: booking._id,
+//       req,
+//       meta: { updateFields, isFinancialUpdate },
+//     });
+
+//     res.json({
+//       message: 'Booking updated successfully',
+//       deletedbooking: isFinancialUpdate ? null : booking, // return null if deleted
+//       salesDataHolidayPackage,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
+
 export const updateHolidayPackage = async (req, res) => {
   try {
     const user = req.user;
@@ -115,33 +211,23 @@ export const updateHolidayPackage = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid booking ID format' });
     }
 
-    let booking = await HolidayPackageBookingModel.findById(id);
-    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
-
-    let query = { _id: id };
-
-    if (user.role === 'admin') {
-      query.organisationId = user.organisationId;
-    } else {
-      query.userId = user.userId;
-    }
+    const oldBooking = await HolidayPackageBookingModel.findById(id);
+    if (!oldBooking) return res.status(404).json({ msg: 'Booking not found' });
 
     // Access control
-    if (user.role === 'user') {
-      if (booking.userId.toString() !== user.userId.toString()) {
-        return res.status(403).json({ msg: 'Not allowed to update this booking' });
-      }
-    } else if (user.role === 'admin') {
-      if (booking.organisationId.toString() !== user.organisationId.toString()) {
-        return res.status(403).json({ msg: 'Not allowed to update this booking' });
-      }
+    if (user.role === 'user' && oldBooking.userId.toString() !== user.userId.toString()) {
+      return res.status(403).json({ msg: 'Not allowed to update this booking' });
+    }
+    if (user.role === 'admin' && oldBooking.organisationId.toString() !== user.organisationId.toString()) {
+      return res.status(403).json({ msg: 'Not allowed to update this booking' });
     }
 
-    // Flatten request body into dot notation keys
+    // Flatten request body
     const flattenObject = (obj, parentKey = '', res = {}) => {
       for (let key in obj) {
+        if (obj[key] === undefined || obj[key] === null) continue;
         const newKey = parentKey ? `${parentKey}.${key}` : key;
-        if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && obj[key] !== null) {
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && Object.keys(obj[key]).length > 0) {
           flattenObject(obj[key], newKey, res);
         } else {
           res[newKey] = obj[key];
@@ -152,44 +238,82 @@ export const updateHolidayPackage = async (req, res) => {
 
     const updateFields = flattenObject(req.body);
 
-    // Apply update using $set
-    booking = await HolidayPackageBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+    // --- STATUS COUNTS LOGIC ---
+    const oldStatus = oldBooking.Status;
+    const newStatus = updateFields.Status;
 
-    // Check if any financial fields exist in the update
+    if (newStatus && oldStatus !== newStatus) {
+      const userDoc = await userModel.findOne({ userId: user.userId });
+      const oldCount = userDoc.statusCounts?.get(oldStatus) || 0;
+      const newCount = userDoc.statusCounts?.get(newStatus) || 0;
+
+      await userModel.findOneAndUpdate(
+        { userId: user.userId },
+        {
+          $set: {
+            [`statusCounts.${oldStatus}`]: Math.max(0, oldCount - 1),
+            [`statusCounts.${newStatus}`]: newCount + 1,
+          },
+        },
+      );
+    }
+
+    // Apply update to booking
+    const booking = await HolidayPackageBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+
+    // --- FINANCIAL UPDATE LOGIC ---
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
     const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
 
     let salesDataHolidayPackage = null;
 
     if (isFinancialUpdate) {
-      // Store the 'entire booking record' in SalesDataModel
+      // Save booking to sales data
       salesDataHolidayPackage = await SalesDataModel.create({
-        booking, // store full booking object
+        booking,
         updatedBy: user.userId,
       });
 
-      // Delete booking from FlightAndHotelBookingModel after saving
+      // Delete original booking
       await HolidayPackageBookingModel.findByIdAndDelete(id);
-    }
 
-    // Audit log for update
-    await createAuditLog({
-      orgId: user.organisationId,
-      actorId: user.userId,
-      email: user.email,
-      action: 'customPackage.update',
-      targetType: 'customPackageBooking',
-      targetId: booking._id,
-      req,
-      meta: { updateFields, isFinancialUpdate },
-    });
+      // Increment totalSale safely
+      const userDoc = await userModel.findOne({ userId: user.userId });
+      const currentSale = userDoc.totalSale || 0;
+      await userModel.findOneAndUpdate({ userId: user.userId }, { $set: { totalSale: currentSale + 1 } }, { new: true });
+
+      // Audit log for lead → sale
+      await createAuditLog({
+        orgId: user.organisationId,
+        actorId: user.userId,
+        email: user.email,
+        action: 'lead.convertToSale',
+        targetType: 'HolidayPackageBooking',
+        targetId: booking._id,
+        req,
+        meta: { updateFields },
+      });
+    } else {
+      // Audit log for normal update
+      await createAuditLog({
+        orgId: user.organisationId,
+        actorId: user.userId,
+        email: user.email,
+        action: 'customPackage.update',
+        targetType: 'customPackageBooking',
+        targetId: booking._id,
+        req,
+        meta: { updateFields, isFinancialUpdate },
+      });
+    }
 
     res.json({
       message: 'Booking updated successfully',
-      deletedbooking: isFinancialUpdate ? null : booking, // return null if deleted
+      deletedBooking: isFinancialUpdate ? null : booking,
       salesDataHolidayPackage,
     });
   } catch (err) {
+    console.error('Error updating holiday package:', err);
     res.status(500).json({ msg: err.message });
   }
 };

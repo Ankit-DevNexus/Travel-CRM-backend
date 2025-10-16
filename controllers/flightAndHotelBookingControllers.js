@@ -3,6 +3,7 @@ import flightAndHotelBookingModel from '../models/flightAndHotelBookingModel.js'
 import { v4 as uuidv4 } from 'uuid';
 import SalesDataModel from '../models/SalesDataModel.js';
 import { createAuditLog } from '../utils/auditLogHelper.js';
+import userModel from '../models/userModel.js';
 
 export const createFlightAndHotelBooking = async (req, res) => {
   try {
@@ -139,6 +140,123 @@ export const getBookedFlightAndHotelById = async (req, res) => {
   }
 };
 
+// export const updateFlightAndHotelBooking = async (req, res) => {
+//   try {
+//     const user = req.user;
+//     const { id } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ msg: 'Invalid booking ID format' });
+//     }
+
+//     let booking = await flightAndHotelBookingModel.findById(id);
+//     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+
+//     // Access control
+//     if (user.role === 'user') {
+//       if (booking.userId.toString() !== user.userId.toString()) {
+//         return res.status(403).json({ msg: 'Not allowed to update this booking' });
+//       }
+//     } else if (user.role === 'admin') {
+//       if (booking.organisationId.toString() !== user.organisationId.toString()) {
+//         return res.status(403).json({ msg: 'Not allowed to update this booking' });
+//       }
+//     }
+
+//     // Flatten request body to handle nested objects
+//     const flattenObject = (obj, parentKey = '', resObj = {}) => {
+//       for (let key in obj) {
+//         if (obj[key] === undefined || obj[key] === null) continue;
+//         const newKey = parentKey ? `${parentKey}.${key}` : key;
+//         if (typeof obj[key] === 'object' && !Array.isArray(obj[key]) && Object.keys(obj[key]).length > 0) {
+//           flattenObject(obj[key], newKey, resObj);
+//         } else {
+//           resObj[newKey] = obj[key];
+//         }
+//       }
+//       return resObj;
+//     };
+
+//     const updateFields = flattenObject(req.body);
+
+//     // Check if any financial fields are updated
+//     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
+//     const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
+
+//     // Apply update
+//     booking = await flightAndHotelBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+
+//     //  Check for Status change and update user status count
+//     if (updateFields.Status) {
+//       const oldStatus = booking.Status;
+//       const newStatus = updateFields.Status;
+
+//       if (oldStatus !== newStatus) {
+//         // Decrease count for old status
+//         if (oldStatus) {
+//           await userModel.findOneAndUpdate({ userId: user.userId }, { $inc: { [`statusCounts.${oldStatus}`]: -1 } });
+//         }
+
+//         // Increase count for new status
+//         await userModel.findOneAndUpdate({ userId: user.userId }, { $inc: { [`statusCounts.${newStatus}`]: 1 } });
+//       }
+//     }
+
+//     let salesData = null;
+
+//     if (isFinancialUpdate) {
+//       // Convert lead sale
+//       salesData = await SalesDataModel.create({
+//         booking, // store the entire booking data
+//         updatedBy: user.userId,
+//       });
+
+//       // Delete booking from flight/hotel model
+//       await flightAndHotelBookingModel.findByIdAndDelete(id);
+
+//       // Increment sales count for user
+//       await userModel.findOneAndUpdate(
+//         { userId: user.userId },
+//         { $inc: { salesCount: 1 } }, // increment by 1
+//         { new: true },
+//       );
+
+//       // Audit log: Convert lead → sale
+//       await createAuditLog({
+//         orgId: user.organisationId,
+//         actorId: user.userId,
+//         email: user.email,
+//         action: 'lead.convertToSale',
+//         targetType: 'FlightAndHotelBooking',
+//         targetId: booking._id,
+//         req,
+//         meta: { updateFields },
+//       });
+//     } else {
+//       // Audit log
+//       await createAuditLog({
+//         orgId: user.organisationId,
+//         actorId: user.userId,
+//         email: user.email,
+//         action: 'flightHotel.updateData',
+//         targetType: 'FlightAndHotelBooking',
+//         targetId: booking._id,
+//         req,
+//         meta: { updateFields },
+//       });
+//     }
+
+//     res.json({
+//       message: 'Booking updated successfully',
+//       isFinancialUpdate,
+//       salesData,
+//     });
+//   } catch (err) {
+//     console.error('Error updating booking:', err);
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
+
 export const updateFlightAndHotelBooking = async (req, res) => {
   try {
     const user = req.user;
@@ -148,21 +266,22 @@ export const updateFlightAndHotelBooking = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid booking ID format' });
     }
 
-    let booking = await flightAndHotelBookingModel.findById(id);
-    if (!booking) return res.status(404).json({ msg: 'Booking not found' });
+    // Get existing booking (old)
+    const oldBooking = await flightAndHotelBookingModel.findById(id);
+    if (!oldBooking) return res.status(404).json({ msg: 'Booking not found' });
 
     // Access control
     if (user.role === 'user') {
-      if (booking.userId.toString() !== user.userId.toString()) {
+      if (oldBooking.userId.toString() !== user.userId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     } else if (user.role === 'admin') {
-      if (booking.organisationId.toString() !== user.organisationId.toString()) {
+      if (oldBooking.organisationId.toString() !== user.organisationId.toString()) {
         return res.status(403).json({ msg: 'Not allowed to update this booking' });
       }
     }
 
-    // Flatten request body to handle nested objects
+    // Flatten request body
     const flattenObject = (obj, parentKey = '', resObj = {}) => {
       for (let key in obj) {
         if (obj[key] === undefined || obj[key] === null) continue;
@@ -182,29 +301,67 @@ export const updateFlightAndHotelBooking = async (req, res) => {
     const financialFields = ['totalAmount', 'paidAmount', 'remainingAmount'];
     const isFinancialUpdate = Object.keys(updateFields).some((key) => financialFields.some((field) => key.endsWith(field)));
 
+    // Capture old status before updating
+    const oldStatus = oldBooking.Status;
+
     // Apply update
-    booking = await flightAndHotelBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+    const updatedBooking = await flightAndHotelBookingModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+
+    // Handle status count update
+    if (updateFields.Status) {
+      const newStatus = updateFields.Status;
+
+      if (oldStatus !== newStatus) {
+        // Decrease count for old status (if any)
+        if (oldStatus) {
+          // Fetch current user first
+          const userDoc = await userModel.findOne({ userId: user.userId });
+
+          const currentOldCount = userDoc.statusCounts.get(oldStatus) || 0;
+          const currentNewCount = userDoc.statusCounts.get(newStatus) || 0;
+
+          // Decrease old status count safely (not below zero)
+          const newOldCount = Math.max(0, currentOldCount - 1);
+          const newNewCount = currentNewCount + 1;
+
+          // Update both counts atomically
+          await userModel.findOneAndUpdate(
+            { userId: user.userId },
+            {
+              $set: {
+                [`statusCounts.${oldStatus}`]: newOldCount,
+                [`statusCounts.${newStatus}`]: newNewCount,
+              },
+            },
+            { new: true },
+          );
+        }
+      }
+    }
 
     let salesData = null;
 
     if (isFinancialUpdate) {
       // Convert lead sale
       salesData = await SalesDataModel.create({
-        booking, // store the entire booking data
+        booking: updatedBooking,
         updatedBy: user.userId,
       });
 
       // Delete booking from flight/hotel model
       await flightAndHotelBookingModel.findByIdAndDelete(id);
 
-      // Audit log: Convert lead → sale
+      // Increment total sale count
+      await userModel.findOneAndUpdate({ userId: user.userId }, { $inc: { totalSale: 1 } }, { new: true });
+
+      // Audit log
       await createAuditLog({
         orgId: user.organisationId,
         actorId: user.userId,
         email: user.email,
         action: 'lead.convertToSale',
         targetType: 'FlightAndHotelBooking',
-        targetId: booking._id,
+        targetId: updatedBooking._id,
         req,
         meta: { updateFields },
       });
@@ -216,7 +373,7 @@ export const updateFlightAndHotelBooking = async (req, res) => {
         email: user.email,
         action: 'flightHotel.updateData',
         targetType: 'FlightAndHotelBooking',
-        targetId: booking._id,
+        targetId: updatedBooking._id,
         req,
         meta: { updateFields },
       });
