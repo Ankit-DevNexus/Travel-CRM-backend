@@ -5,9 +5,7 @@ import userModel from '../models/userModel.js';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 export const forgotPassword = async (req, res) => {
-  if (req.method === 'GET') {
-    res.render('forgetPassword');
-  } else if (req.method === 'POST') {
+
     try {
       const { email } = req.body;
       const user = await userModel.findOne({ email });
@@ -28,11 +26,11 @@ export const forgotPassword = async (req, res) => {
       const resetLink = `${CLIENT_URL}/api/reset-password/${token}`;
 
       const html = `
-                <p>Hello ${user.name},</p>
-                <p>Click the link below to reset your password:</p>
-                <a href="${resetLink}">${resetLink}</a>
-                <p>This link is valid for 1 hour.</p>
-            `;
+          <p>Hello ${user.name},</p>
+          <p>Click the link below to reset your password:</p>
+          <a href="${resetLink}">${resetLink}</a>
+          <p>This link is valid for 1 hour.</p>
+      `;
 
       await sendEmail(user.email, 'Password Reset Request', html);
 
@@ -43,7 +41,6 @@ export const forgotPassword = async (req, res) => {
         .status(500)
         .json({ msg: 'Something went wrong', error: error.message });
     }
-  }
 };
 
 export const resetPassword = async (req, res) => {
