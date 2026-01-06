@@ -4,9 +4,8 @@ import { sendFeedbackEmail } from './emailService.js'; // Import from emailServi
 import SalesDataModel from '../models/SalesDataModel.js';
 
 export const scheduleFeedbackEmails = () => {
-  // Run job every 3 hour
   cron.schedule(
-    '*/1 * * * *',
+    '* * * * *',
     async () => {
       try {
         console.log('Scheduled: Checking for completed trips...');
@@ -58,9 +57,19 @@ export const checkAndSendFeedbackEmails = async () => {
 
         if (latestDate && latestDate < today) {
           // Past booking, send feedback email
+          // const email = getClientEmail(booking);
+
+          // console.log(`Attempting to send email to ${email || 'No email'}...`);
+          // await sendFeedbackEmail(booking);
+
           const email = getClientEmail(booking);
 
-          console.log(`Attempting to send email to ${email || 'No email'}...`);
+          if (!email) {
+            console.log(`Skipping: No email found for ${booking.uniqueBookingId}`);
+            errorCount++;
+            continue;
+          }
+
           await sendFeedbackEmail(booking);
 
           await SalesDataModel.findByIdAndUpdate(
