@@ -21,91 +21,208 @@ export const scheduleFeedbackEmails = () => {
   );
 };
 
+// export const checkAndSendFeedbackEmails = async () => {
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   console.log('Starting feedback email check...');
+//   console.log("Today's date:", today.toISOString().split('T')[0]);
+//   console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+
+//   try {
+//     // Get bookings where feedback not sent
+//     const pendingBookings = await SalesDataModel.find({
+//       $or: [{ 'booking.feedbackSent': { $exists: false } }, { 'booking.feedbackSent': false }, { 'booking.feedbackSent': null }],
+//     });
+
+//     console.log(`Found ${pendingBookings.length} bookings to check`);
+
+//     let sentCount = 0;
+//     let errorCount = 0;
+
+//     for (const booking of pendingBookings) {
+//       try {
+//         if (booking.booking?.feedbackSent === true) {
+//           console.log(`Skipping already sent: ${booking.booking?.uniqueBookingId}`);
+//           continue;
+//         }
+//         // Get the latest from booking
+//         const latestDate = getLatestCompletionDate(booking);
+
+//         console.log(
+//           `Booking: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`,
+//           'Latest Completion Date:',
+//           latestDate ? latestDate.toISOString().split('T')[0] : 'N/A',
+//         );
+
+//         if (latestDate && latestDate < today) {
+//           // Past booking, send feedback email
+//           // const email = getClientEmail(booking);
+
+//           // console.log(`Attempting to send email to ${email || 'No email'}...`);
+//           // await sendFeedbackEmail(booking);
+
+//           const email = getClientEmail(booking);
+
+//           if (!email) {
+//             console.log(`Skipping: No email found for ${booking.uniqueBookingId}`);
+//             errorCount++;
+//             continue;
+//           }
+
+//           await sendFeedbackEmail(booking);
+
+//           await SalesDataModel.findByIdAndUpdate(
+//             booking._id,
+//             {
+//               $set: {
+//                 'booking.feedbackSent': true,
+//                 'booking.feedbackSentAt': new Date(),
+//               },
+//             },
+//             { new: true }, // return updated document
+//           );
+
+//           console.log(`Feedback sent for: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`);
+//           sentCount++;
+//         } else {
+//           console.log(`Skipping: Trip not yet completed or no valid date`);
+//         }
+//       } catch (error) {
+//         console.error(`Failed for ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}:`, error.message);
+//         errorCount++;
+//       }
+//     }
+
+//     console.log('\nFeedback check completed!');
+//     console.log(`Successfully sent: ${sentCount}`);
+//     console.log(`Failed: ${errorCount}`);
+//     console.log(`Total processed: ${pendingBookings.length}`);
+//   } catch (error) {
+//     console.error('Error in feedback email check:', error);
+//   }
+// };
+
+// ---------------------------------------------------------------------------
+// for local 
+// export const checkAndSendFeedbackEmails = async () => {
+//   // Local machine is already IST
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+
+//   console.log('[LOCAL]');
+//   console.log("Today's date (IST):", today.toLocaleDateString('en-CA'));
+//   console.log('Current time (IST):', today.toLocaleString('en-IN'));
+
+//   try {
+//     const pendingBookings = await SalesDataModel.find({
+//       $or: [
+//         { 'booking.feedbackSent': { $exists: false } },
+//         { 'booking.feedbackSent': false },
+//         { 'booking.feedbackSent': null },
+//       ],
+//     });
+
+//     console.log(`Found ${pendingBookings.length} bookings to check`);
+
+//     for (const booking of pendingBookings) {
+//       const latestDate = getLatestCompletionDate(booking);
+
+//       console.log(
+//         `Booking: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`,
+//         'Latest Completion Date:',
+//         latestDate ? latestDate.toLocaleDateString('en-CA') : 'N/A'
+//       );
+
+//       if (latestDate && latestDate < today) {
+//         const email = getClientEmail(booking);
+//         if (!email) continue;
+
+//         await sendFeedbackEmail(booking);
+
+//         await SalesDataModel.findByIdAndUpdate(booking._id, {
+//           $set: {
+//             'booking.feedbackSent': true,
+//             'booking.feedbackSentAt': new Date(),
+//           },
+//         });
+
+//         console.log(`Feedback sent: ${booking.uniqueBookingId}`);
+//       }
+//     }
+//   } catch (err) {
+//     console.error('[LOCAL] Error:', err);
+//   }
+// };
+// ---------------------------------------------------------------------------
+
+// for production 
 export const checkAndSendFeedbackEmails = async () => {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  // Convert server UTC
+  const todayIST = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+  );
+  todayIST.setHours(0, 0, 0, 0);
 
-  now.setHours(0, 0, 0, 0);
-
-  console.log('IST Date:', now.toISOString().split('T')[0]);
-  console.log('IST Time:', now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
-
-  // console.log('Starting feedback email check...');
-  // console.log("Today's date:", today.toISOString().split('T')[0]);
-  // console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+  console.log('[PRODUCTION]');
+  console.log("Today's date (IST):", todayIST.toLocaleDateString('en-CA'));
+  console.log(
+    'Current time (IST):',
+    todayIST.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+  );
 
   try {
-    // Get bookings where feedback not sent
     const pendingBookings = await SalesDataModel.find({
-      $or: [{ 'booking.feedbackSent': { $exists: false } }, { 'booking.feedbackSent': false }, { 'booking.feedbackSent': null }],
+      $or: [
+        { 'booking.feedbackSent': { $exists: false } },
+        { 'booking.feedbackSent': false },
+        { 'booking.feedbackSent': null },
+      ],
     });
 
     console.log(`Found ${pendingBookings.length} bookings to check`);
 
-    let sentCount = 0;
-    let errorCount = 0;
-
     for (const booking of pendingBookings) {
-      try {
-        if (booking.booking?.feedbackSent === true) {
-          console.log(`Skipping already sent: ${booking.booking?.uniqueBookingId}`);
-          continue;
-        }
-        // Get the latest from booking
-        const latestDate = getLatestCompletionDate(booking);
+      const rawDate = getLatestCompletionDate(booking);
 
-        console.log(
-          `Booking: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`,
-          'Latest Completion Date:',
-          latestDate ? latestDate.toISOString().split('T')[0] : 'N/A',
+      // Normalize booking date to IST
+      let latestDateIST = null;
+      if (rawDate) {
+        latestDateIST = new Date(
+          new Date(rawDate).toLocaleString('en-US', {
+            timeZone: 'Asia/Kolkata',
+          })
         );
+        latestDateIST.setHours(0, 0, 0, 0);
+      }
 
-        if (latestDate && latestDate < today) {
-          // Past booking, send feedback email
-          // const email = getClientEmail(booking);
+      console.log(
+        `Booking: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`,
+        'Latest Completion Date:',
+        latestDateIST ? latestDateIST.toLocaleDateString('en-CA') : 'N/A'
+      );
 
-          // console.log(`Attempting to send email to ${email || 'No email'}...`);
-          // await sendFeedbackEmail(booking);
+      if (latestDateIST && latestDateIST <= todayIST) {
+        const email = getClientEmail(booking);
+        if (!email) continue;
 
-          const email = getClientEmail(booking);
+        await sendFeedbackEmail(booking);
 
-          if (!email) {
-            console.log(`Skipping: No email found for ${booking.uniqueBookingId}`);
-            errorCount++;
-            continue;
-          }
+        await SalesDataModel.findByIdAndUpdate(booking._id, {
+          $set: {
+            'booking.feedbackSent': true,
+            'booking.feedbackSentAt': new Date(),
+          },
+        });
 
-          await sendFeedbackEmail(booking);
-
-          await SalesDataModel.findByIdAndUpdate(
-            booking._id,
-            {
-              $set: {
-                'booking.feedbackSent': true,
-                'booking.feedbackSentAt': new Date(),
-              },
-            },
-            { new: true }, // return updated document
-          );
-
-          console.log(`Feedback sent for: ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}`);
-          sentCount++;
-        } else {
-          console.log(`Skipping: Trip not yet completed or no valid date`);
-        }
-      } catch (error) {
-        console.error(`Failed for ${booking.uniqueBookingId || booking.booking?.uniqueBookingId}:`, error.message);
-        errorCount++;
+        console.log(`Feedback sent: ${booking.uniqueBookingId}`);
       }
     }
-
-    console.log('\nFeedback check completed!');
-    console.log(`Successfully sent: ${sentCount}`);
-    console.log(`Failed: ${errorCount}`);
-    console.log(`Total processed: ${pendingBookings.length}`);
-  } catch (error) {
-    console.error('Error in feedback email check:', error);
+  } catch (err) {
+    console.error('[PRODUCTION] Error:', err);
   }
 };
+
 
 const getLatestCompletionDate = (booking) => {
   const dates = [];

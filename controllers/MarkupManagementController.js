@@ -96,9 +96,47 @@ export const updateMarkupManagement = async (req, res) => {
       return res.status(404).json({ error: 'Markup not found' });
     }
 
-    const updatedMarkup = await MarkupManagementModel.findByIdAndUpdate(id, { $set: req.body }, { new: true, runValidators: true });
+    // Build $set object with only changed fields
+    const updates = {};
 
-    // Create audit log entry
+    const buildUpdates = (newObj, oldObj, prefix = '') => {
+      for (const key in newObj) {
+        const newValue = newObj[key];
+        const oldValue = oldObj?.[key];
+        const path = prefix ? `${prefix}.${key}` : key;
+
+        if (
+          typeof newValue === 'object' &&
+          newValue !== null &&
+          !Array.isArray(newValue)
+        ) {
+          buildUpdates(newValue, oldValue, path);
+        } else {
+          if (newValue !== oldValue) {
+            updates[path] = newValue;
+          }
+        }
+      }
+    };
+
+    buildUpdates(req.body, oldMarkup.toObject());
+
+    // No changes
+    if (Object.keys(updates).length === 0) {
+      return res.status(200).json({
+        message: 'No changes detected',
+        data: oldMarkup,
+      });
+    }
+
+    // Update only changed fields
+    const updatedMarkup = await MarkupManagementModel.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    // Audit log
     await createAuditLog({
       orgId: user.organisationId,
       actorId: user.userId,
@@ -108,7 +146,11 @@ export const updateMarkupManagement = async (req, res) => {
       targetType: 'MarkupManagement',
       targetId: id,
       req,
-      meta: { before: oldMarkup, after: updatedMarkup },
+      meta: {
+        before: oldMarkup,
+        after: updatedMarkup,
+        changes: updates,
+      },
     });
 
     res.status(200).json({
@@ -123,6 +165,7 @@ export const updateMarkupManagement = async (req, res) => {
     });
   }
 };
+
 
 // Delete Markup
 export const deleteMarkupManagement = async (req, res) => {
