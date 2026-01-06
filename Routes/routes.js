@@ -31,11 +31,9 @@ import { deleteAllAuditLogs, deleteAuditLogById, getAllAuditLogs } from '../cont
 
 const router = express.Router();
 
-router.get('/forgot-password', forgotPassword);
-router.post('/forgot-password', forgotPassword);
 
 // forget password
-router.get('/reset-password/:token', resetPassword);
+router.post('/forgot-password', forgotPassword);
 router.patch('/reset-password/:token', resetPassword);
 
 // Register organisation
