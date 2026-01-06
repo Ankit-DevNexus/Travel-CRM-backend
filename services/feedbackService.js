@@ -22,12 +22,16 @@ export const scheduleFeedbackEmails = () => {
 };
 
 export const checkAndSendFeedbackEmails = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 
-  console.log('Starting feedback email check...');
-  console.log("Today's date:", today.toISOString().split('T')[0]);
-  console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+  now.setHours(0, 0, 0, 0);
+
+  console.log('IST Date:', now.toISOString().split('T')[0]);
+  console.log('IST Time:', now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+
+  // console.log('Starting feedback email check...');
+  // console.log("Today's date:", today.toISOString().split('T')[0]);
+  // console.log('Current date (IST):', today.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
 
   try {
     // Get bookings where feedback not sent
