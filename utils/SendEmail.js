@@ -6,13 +6,13 @@ export const sendEmail = async (to, subject, html) => {
     port: Number(process.env.SMTP_PORT),
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: {
-      user: process.env.USER_MAIL,
-      pass: process.env.EMAIL_PASS
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
     }
   });
 
   await transporter.sendMail({
-    from: `"DevNexus" <${process.env.USER_MAIL}>`,
+    from: `"DevNexus" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html
