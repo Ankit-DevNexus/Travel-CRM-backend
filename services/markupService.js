@@ -1,4 +1,4 @@
-import MarkupManagementModel from '../models/markupManagementModel.js';
+import MarkupManagementModel from '../models/MarkupManagementModel.js'
 
 export const createZeroMarkupForAdmin = async (admin) => {
   // prevent duplicates
