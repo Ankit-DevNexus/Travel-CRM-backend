@@ -81,7 +81,6 @@ export const RegisterOrganisation = async (req, res) => {
     org.adminId = admin._id;
     await org.save();
 
-    //  CREATE MARKUP (ZERO VALUES)
     await createZeroMarkupForAdmin(admin);
 
     res.json({

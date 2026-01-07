@@ -1,5 +1,5 @@
 import express from 'express';
-import { deleteUser, getAllUsers, login, signup, updateUser } from '../controllers/userControllers.js';
+import { deleteUser, getAgentsNameOnly, getAllUsers, login, signup, updateUser } from '../controllers/userControllers.js';
 import {
   createFlightAndHotelBooking,
   deleteFlightAndHotelBooking,
@@ -50,6 +50,7 @@ router.get('/register', getAllOrganisations);
 router.post('/signup-user', Authenticate, signup); // create user
 router.post('/sigin-user', login);
 router.get('/get-all-users', Authenticate, getAllUsers);
+router.get('/get-agent-name', Authenticate, getAgentsNameOnly);
 router.patch('/get-all-users/:id', Authenticate, updateUser);
 router.delete('/get-all-users/:id', Authenticate, deleteUser);
 
