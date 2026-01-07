@@ -179,10 +179,38 @@ export const getAllUsers = async (req, res) => {
       query = { _id: req.user._id };
     }
 
-    const users = await userModel.find(query).select('-password');
+    const users = await userModel.find(query);
 
     res.status(200).json({
       message: 'Users fetched successfully',
+      totolUser: users.length,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getAgentsNameOnly = async (req, res) => {
+  try {
+    let query = {};
+
+    if (req.user.role === 'admin') {
+      // Get only users from this admin's organisation, excluding admin himself
+      query = {
+        organisationId: new mongoose.Types.ObjectId(req.user.organisationId),
+        role: 'user', // only normal users
+        adminId: req.user._id, // users created by this admin
+      };
+    } else {
+      // Normal user → can only see themselves
+      query = { _id: req.user._id };
+    }
+
+    const users = await userModel.find(query).select('EmpUsername');
+
+    res.status(200).json({
+      message: 'Agent name fetched successfully',
       totolUser: users.length,
       users,
     });
