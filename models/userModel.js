@@ -35,7 +35,7 @@ const UserSchema = new mongoose.Schema(
       default: {},
     },
     isActive: { type: Boolean, default: true },
-    lastLogin: { type: Date }, // track last login
+    lastLogin: { type: Date },
     loginHistory: [
       {
         loginAt: { type: Date },
@@ -43,6 +43,8 @@ const UserSchema = new mongoose.Schema(
         userAgent: String,
       },
     ],
+    // otp: String,
+    // otpExpiresAt: String,
     totalSale: {
       type: Number,
       default: 0,

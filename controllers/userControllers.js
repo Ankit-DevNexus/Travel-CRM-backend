@@ -2,6 +2,7 @@
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import mongoose from 'mongoose';
+// import { sendVerificationOTP } from '../helpers/otpHelper.js';
 
 // Generate JWT
 const generateToken = (user) => {
@@ -46,9 +47,14 @@ export const signup = async (req, res) => {
       newEmpId = `EMP-A${nextNumber.toString().padStart(4, '0')}`;
     }
 
+    // const otp = generateOTP();
+    // const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
     // Create sub-user
     const newUser = await userModel.create({
       ...req.body,
+      // otp,
+      // otpExpiresAt,
       EmpUsername: req.body.EmpUsername || req.body.email.split('@')[0],
       role: 'user',
       userId: newEmpId,
@@ -56,6 +62,9 @@ export const signup = async (req, res) => {
       adminId: adminUser.createdByUserId || adminUser._id,
       organisationId: adminUser.organisationId,
     });
+  
+
+    // await sendVerificationOTP(email, otp);
 
     res.status(201).json({
       message: 'User created successfully',

@@ -28,6 +28,7 @@ import { forgotPassword, resetPassword } from '../controllers/ForgetPasswordCont
 import { deleteSalesData, getAllSalesData, getSalesDataById, updateSalesData } from '../controllers/SalesDataController.js';
 import { submitFeedback, triggerFeedbackEmails } from '../controllers/feedbackController.js';
 import { deleteAllAuditLogs, deleteAuditLogById, getAllAuditLogs } from '../controllers/AuditLogsController.js';
+import { resendOTP, verifyOTP } from '../controllers/verifyOTPController.js';
 
 const router = express.Router();
 
@@ -35,6 +36,11 @@ const router = express.Router();
 // forget password
 router.post('/forgot-password', forgotPassword);
 router.patch('/reset-password/:token', resetPassword);
+
+
+// OTP verification
+router.post('/verify-otp', verifyOTP);
+router.post('/resend-otp', resendOTP);
 
 // Register organisation
 router.post('/register', RegisterOrganisation);

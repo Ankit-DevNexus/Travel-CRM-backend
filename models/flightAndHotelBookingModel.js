@@ -85,7 +85,6 @@ const bookingSchema = new mongoose.Schema({
   feedbackReceivedAt: {
     type: Date,
   },
-
   feedbackData: {
     rating: {
       type: Number,
