@@ -1,5 +1,6 @@
 import organizationModel from '../models/OrganisationModel.js';
 import userModel from '../models/userModel.js';
+import { createZeroMarkupForAdmin } from '../services/markupService.js';
 
 // export const RegisterOrganisation = async (req, res) => {
 //   try {
@@ -79,6 +80,9 @@ export const RegisterOrganisation = async (req, res) => {
     // Link adminId to organisation
     org.adminId = admin._id;
     await org.save();
+
+    //  CREATE MARKUP (ZERO VALUES)
+    await createZeroMarkupForAdmin(admin);
 
     res.json({
       message: 'Organisation registered successfully',

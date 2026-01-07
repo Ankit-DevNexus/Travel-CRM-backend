@@ -5,6 +5,9 @@ import { createAuditLog } from '../utils/auditLogHelper.js';
 // Create Markup
 export const CreateMarkupManagement = async (req, res) => {
   try {
+
+    console.log("Inside markup");
+    
     const user = req.user;
 
     const markupData = await MarkupManagementModel.create({

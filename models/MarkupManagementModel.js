@@ -4,18 +4,25 @@ const markupValueSchema = {
   type: {
     type: String,
     enum: ['PERCENTAGE', 'FLAT'],
-    required: true,
+    default: 'FLAT',
   },
   value: {
     type: Number,
-    required: true,
+    default: 0,
   },
 };
 
 const markupManagementSchema = new mongoose.Schema(
   {
-    organisationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-    userId: { type: String, required: true },
+    organisationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
     categoryWiseMarkups: {
       flights: markupValueSchema,
       hotels: markupValueSchema,
@@ -37,5 +44,9 @@ const markupManagementSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-const markupManagementModel = mongoose.model('MarkupManagement', markupManagementSchema);
-export default markupManagementModel;
+// SAFE MODEL EXPORT (prevents overwrite)
+const MarkupManagementModel =
+  mongoose.models.MarkupManagement ||
+  mongoose.model('MarkupManagement', markupManagementSchema);
+
+export default MarkupManagementModel;
